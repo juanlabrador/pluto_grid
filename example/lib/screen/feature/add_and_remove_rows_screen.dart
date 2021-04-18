@@ -134,6 +134,45 @@ class _AddAndRemoveRowsScreenState extends State<AddAndRemoveRowsScreen> {
             ),
             Expanded(
               child: PlutoGrid(
+                createFooter: (manager) => Container(
+                  width: double.maxFinite,
+                  margin: EdgeInsets.only(right: 10),
+                  child: Row(
+                    children: [
+                      Column(
+                        children: [
+                          Container(
+                            margin: EdgeInsets.only(top: 5),
+                            child: Text('Total Bruto', style: TextStyle(fontSize: 13)),
+                          ),
+                          Text('950,000 COP', style: TextStyle(fontSize: 16)),
+                          Container(
+                            margin: EdgeInsets.only(top: 5),
+                            child: Text('Descuento', style: TextStyle(fontSize: 13)),
+                          ),
+                          Text('0 COP', style: TextStyle(fontSize: 16)),
+                        ],
+                      ),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Container(
+                              margin: EdgeInsets.only(top: 5),
+                              child: Text('IVA', style: TextStyle(fontSize: 13)),
+                            ),
+                            Text('50,000 COP', style: TextStyle(fontSize: 16)),
+                            Container(
+                              margin: EdgeInsets.only(top: 5),
+                              child: Text('Total Neto', style: TextStyle(fontSize: 13)),
+                            ),
+                            Text('1,000,000 COP', style: TextStyle(fontSize: 16))
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
                 columns: columns,
                 rows: rows,
                 onChanged: (PlutoGridOnChangedEvent event) {

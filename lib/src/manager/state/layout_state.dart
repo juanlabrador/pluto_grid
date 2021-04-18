@@ -96,7 +96,7 @@ mixin LayoutState implements IPlutoGridState {
       createHeader == null ? 0 : PlutoGridSettings.rowTotalHeight;
 
   double get footerHeight =>
-      createFooter == null ? 0 : PlutoGridSettings.rowTotalHeight;
+      createFooter == null ? 0 : PlutoGridSettings.rowTotalHeight * 2;
 
   double get offsetHeight => maxHeight - headerHeight - footerHeight;
 
