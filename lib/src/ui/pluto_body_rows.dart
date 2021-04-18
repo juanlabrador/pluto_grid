@@ -99,30 +99,35 @@ class _PlutoBodyRowsState extends _PlutoBodyRowsStateWithChange {
       radius: widget.stateManager.configuration.scrollbarConfig.scrollbarRadius,
       radiusWhileDragging: widget.stateManager.configuration.scrollbarConfig
           .scrollbarRadiusWhileDragging,
-      child: SingleChildScrollView(
-        controller: horizontalScroll,
-        scrollDirection: Axis.horizontal,
-        physics: const ClampingScrollPhysics(),
-        child: SizedBox(
-          width: width,
-          child: ListView.builder(
-            controller: verticalScroll,
-            scrollDirection: Axis.vertical,
+      child: NotificationListener<OverscrollIndicatorNotification>(
+          onNotification: (overscroll) {
+            overscroll.disallowGlow();
+            return true;
+          },
+          child: SingleChildScrollView(
+            controller: horizontalScroll,
+            scrollDirection: Axis.horizontal,
             physics: const ClampingScrollPhysics(),
-            itemCount: rows.length,
-            itemExtent: widget.stateManager.rowTotalHeight,
-            itemBuilder: (ctx, i) {
-              return PlutoBaseRow(
-                key: ValueKey('body_row_${rows[i].key}'),
-                stateManager: widget.stateManager,
-                rowIdx: i,
-                row: rows[i],
-                columns: columns,
-              );
-            },
-          ),
-        ),
-      ),
+            child: SizedBox(
+              width: width,
+              child: ListView.builder(
+                controller: verticalScroll,
+                scrollDirection: Axis.vertical,
+                physics: const ClampingScrollPhysics(),
+                itemCount: rows.length,
+                itemExtent: widget.stateManager.rowTotalHeight,
+                itemBuilder: (ctx, i) {
+                  return PlutoBaseRow(
+                    key: ValueKey('body_row_${rows[i].key}'),
+                    stateManager: widget.stateManager,
+                    rowIdx: i,
+                    row: rows[i],
+                    columns: columns,
+                  );
+                },
+              ),
+            ),
+          )),
     );
   }
 }

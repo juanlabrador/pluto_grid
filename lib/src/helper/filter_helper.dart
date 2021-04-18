@@ -466,31 +466,36 @@ class _FilterPopupHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        children: [
-          IconButton(
-            icon: const Icon(Icons.add),
-            color: configuration.iconColor,
-            iconSize: configuration.iconSize,
-            onPressed: handleAddButton,
+    return NotificationListener<OverscrollIndicatorNotification>(
+        onNotification: (overscroll) {
+          overscroll.disallowGlow();
+          return true;
+        },
+        child: SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: [
+              IconButton(
+                icon: const Icon(Icons.add),
+                color: configuration.iconColor,
+                iconSize: configuration.iconSize,
+                onPressed: handleAddButton,
+              ),
+              IconButton(
+                icon: const Icon(Icons.remove),
+                color: configuration.iconColor,
+                iconSize: configuration.iconSize,
+                onPressed: handleRemoveButton,
+              ),
+              IconButton(
+                icon: const Icon(Icons.clear_sharp),
+                color: Colors.red,
+                iconSize: configuration.iconSize,
+                onPressed: handleClearButton,
+              ),
+            ],
           ),
-          IconButton(
-            icon: const Icon(Icons.remove),
-            color: configuration.iconColor,
-            iconSize: configuration.iconSize,
-            onPressed: handleRemoveButton,
-          ),
-          IconButton(
-            icon: const Icon(Icons.clear_sharp),
-            color: Colors.red,
-            iconSize: configuration.iconSize,
-            onPressed: handleClearButton,
-          ),
-        ],
-      ),
-    );
+        ));
   }
 }
 
