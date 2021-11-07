@@ -1,31 +1,30 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
-import 'package:pluto_filtered_list/pluto_filtered_list.dart';
 import 'package:pluto_grid/pluto_grid.dart';
 
 abstract class IRowState {
-  List<PlutoRow> get rows;
+  List<PlutoRow?> get rows;
 
-  FilteredList<PlutoRow> refRows;
+  FilteredList<PlutoRow?>? refRows;
 
-  List<PlutoRow> get checkedRows;
+  List<PlutoRow?> get checkedRows;
 
-  List<PlutoRow> get unCheckedRows;
+  List<PlutoRow?> get unCheckedRows;
 
   bool get hasCheckedRow;
 
   bool get hasUnCheckedRow;
 
   /// Row index of currently selected cell.
-  int get currentRowIdx;
+  int? get currentRowIdx;
 
   /// Row of currently selected cell.
-  PlutoRow get currentRow;
+  PlutoRow? get currentRow;
 
-  int getRowIdxByOffset(double offset);
+  int? getRowIdxByOffset(double offset);
 
-  PlutoRow getRowByIdx(int rowIdx);
+  PlutoRow? getRowByIdx(int rowIdx);
 
   PlutoRow getNewRow();
 
@@ -82,58 +81,59 @@ abstract class IRowState {
 }
 
 mixin RowState implements IPlutoGridState {
-  List<PlutoRow> get rows => [...refRows];
+  List<PlutoRow?> get rows => [...refRows!];
 
-  FilteredList<PlutoRow> get refRows => _refRows;
+  FilteredList<PlutoRow?>? get refRows => _refRows;
 
-  set refRows(FilteredList<PlutoRow> setRows) {
-    PlutoGridStateManager.initializeRows(refColumns.originalList, setRows);
+  set refRows(FilteredList<PlutoRow?>? setRows) {
+    PlutoGridStateManager.initializeRows(refColumns!.originalList, setRows);
     _refRows = setRows;
   }
 
-  FilteredList<PlutoRow> _refRows;
+  FilteredList<PlutoRow?>? _refRows;
 
-  List<PlutoRow> get checkedRows => refRows.where((row) => row.checked).toList(
-        growable: false,
-      );
+  List<PlutoRow?> get checkedRows =>
+      refRows!.where((row) => row!.checked!).toList(
+            growable: false,
+          );
 
-  List<PlutoRow> get unCheckedRows =>
-      refRows.where((row) => !row.checked).toList(
+  List<PlutoRow?> get unCheckedRows =>
+      refRows!.where((row) => !row!.checked!).toList(
             growable: false,
           );
 
   bool get hasCheckedRow =>
-      refRows.firstWhere(
-        (element) => element.checked,
+      refRows!.firstWhere(
+        (element) => element!.checked!,
         orElse: () => null,
       ) !=
       null;
 
   bool get hasUnCheckedRow =>
-      refRows.firstWhere(
-        (element) => !element.checked,
+      refRows!.firstWhere(
+        (element) => !element!.checked!,
         orElse: () => null,
       ) !=
       null;
 
-  int get currentRowIdx => currentCellPosition?.rowIdx;
+  int? get currentRowIdx => currentCellPosition?.rowIdx;
 
-  PlutoRow get currentRow {
+  PlutoRow? get currentRow {
     if (currentRowIdx == null) {
       return null;
     }
 
-    return refRows[currentRowIdx];
+    return refRows![currentRowIdx!];
   }
 
-  int getRowIdxByOffset(double offset) {
-    offset -= bodyTopOffset - scroll.verticalOffset;
+  int? getRowIdxByOffset(double offset) {
+    offset -= bodyTopOffset - scroll!.verticalOffset;
 
     double currentOffset = 0.0;
 
-    int indexToMove;
+    int? indexToMove;
 
-    final int rowsLength = refRows.length;
+    final int rowsLength = refRows!.length;
 
     for (var i = 0; i < rowsLength; i += 1) {
       if (currentOffset <= offset && offset < currentOffset + rowTotalHeight) {
@@ -147,20 +147,20 @@ mixin RowState implements IPlutoGridState {
     return indexToMove;
   }
 
-  PlutoRow getRowByIdx(int rowIdx) {
-    if (rowIdx == null || rowIdx < 0 || refRows.length - 1 < rowIdx) {
+  PlutoRow? getRowByIdx(int? rowIdx) {
+    if (rowIdx == null || rowIdx < 0 || refRows!.length - 1 < rowIdx) {
       return null;
     }
 
-    return refRows[rowIdx];
+    return refRows![rowIdx];
   }
 
   PlutoRow getNewRow() {
     final cells = <String, PlutoCell>{};
 
-    refColumns.forEach((PlutoColumn column) {
+    refColumns!.forEach((PlutoColumn column) {
       cells[column.field] = PlutoCell(
-        value: column.type.defaultValue,
+        value: column.type!.defaultValue,
       );
     });
 
@@ -200,12 +200,12 @@ mixin RowState implements IPlutoGridState {
   }
 
   void setRowChecked(
-    PlutoRow row,
-    bool flag, {
+    PlutoRow? row,
+    bool? flag, {
     bool notify = true,
   }) {
-    final findRow = refRows.firstWhere(
-      (element) => element.key == row.key,
+    final findRow = refRows!.firstWhere(
+      (element) => element!.key == row!.key,
       orElse: () => null,
     );
 
@@ -220,23 +220,27 @@ mixin RowState implements IPlutoGridState {
     }
   }
 
-  void insertRows(int rowIdx, List<PlutoRow> rows) {
+  void insertRows(int rowIdx, List<PlutoRow>? rows) {
     if (rows == null || rows.isEmpty) {
       return;
     }
 
-    if (rowIdx < 0 || refRows.length < rowIdx) {
+    if (page > 1) {
+      rowIdx += (page - 1) * pageSize;
+    }
+
+    if (rowIdx < 0 || refRows!.originalLength < rowIdx) {
       return;
     } else if (rowIdx == 0) {
       prependRows(rows);
       return;
-    } else if (refRows.length == rowIdx) {
+    } else if (refRows!.originalLength == rowIdx) {
       appendRows(rows);
       return;
     }
 
     if (hasSortedColumn) {
-      final int sortIdx = refRows[rowIdx].sortIdx;
+      final int? sortIdx = refRows!.originalList[rowIdx]!.sortIdx;
 
       PlutoGridStateManager.initializeRows(
         refColumns,
@@ -244,9 +248,10 @@ mixin RowState implements IPlutoGridState {
         start: sortIdx,
       );
 
-      for (var i = 0; i < refRows.length; i += 1) {
-        if (sortIdx <= refRows[i].sortIdx) {
-          refRows[i].sortIdx = refRows[i].sortIdx + rows.length;
+      for (var i = 0; i < refRows!.originalLength; i += 1) {
+        if (sortIdx! <= refRows!.originalList[i]!.sortIdx!) {
+          refRows!.originalList[i]!.sortIdx =
+              refRows!.originalList[i]!.sortIdx! + rows.length;
         }
       }
 
@@ -256,7 +261,7 @@ mixin RowState implements IPlutoGridState {
 
       PlutoGridStateManager.initializeRows(
         refColumns,
-        refRows,
+        refRows!.originalList,
         forceApplySortIdx: true,
       );
     }
@@ -270,11 +275,11 @@ mixin RowState implements IPlutoGridState {
 
     /// Update currentSelectingPosition
     if (currentSelectingPosition != null &&
-        rowIdx <= currentSelectingPosition.rowIdx) {
+        rowIdx <= currentSelectingPosition!.rowIdx!) {
       setCurrentSelectingPosition(
         cellPosition: PlutoGridCellPosition(
-          columnIdx: currentSelectingPosition.columnIdx,
-          rowIdx: rows.length + currentSelectingPosition.rowIdx,
+          columnIdx: currentSelectingPosition!.columnIdx,
+          rowIdx: rows.length + currentSelectingPosition!.rowIdx!,
         ),
         notify: false,
       );
@@ -289,13 +294,13 @@ mixin RowState implements IPlutoGridState {
     prependRows(getNewRows(count: count));
   }
 
-  void prependRows(List<PlutoRow> rows) {
-    if (rows == null || rows.isEmpty) {
+  void prependRows(List<PlutoRow?> rows) {
+    if (rows.isEmpty) {
       return;
     }
 
-    final start = (refRows.isNotEmpty
-            ? refRows.map((row) => row.sortIdx ?? 0).reduce(min)
+    final start = (refRows!.isNotEmpty
+            ? refRows!.map((row) => row!.sortIdx ?? 0).reduce(min)
             : 0) -
         rows.length;
 
@@ -311,8 +316,8 @@ mixin RowState implements IPlutoGridState {
     if (currentCell != null) {
       setCurrentCellPosition(
         PlutoGridCellPosition(
-          columnIdx: currentCellPosition.columnIdx,
-          rowIdx: rows.length + currentRowIdx,
+          columnIdx: currentCellPosition!.columnIdx,
+          rowIdx: rows.length + currentRowIdx!,
         ),
         notify: false,
       );
@@ -326,8 +331,8 @@ mixin RowState implements IPlutoGridState {
     if (currentSelectingPosition != null) {
       setCurrentSelectingPosition(
         cellPosition: PlutoGridCellPosition(
-          columnIdx: currentSelectingPosition.columnIdx,
-          rowIdx: rows.length + currentSelectingPosition.rowIdx,
+          columnIdx: currentSelectingPosition!.columnIdx,
+          rowIdx: rows.length + currentSelectingPosition!.rowIdx!,
         ),
         notify: false,
       );
@@ -343,12 +348,12 @@ mixin RowState implements IPlutoGridState {
   }
 
   void appendRows(List<PlutoRow> rows) {
-    if (rows == null || rows.isEmpty) {
+    if (rows.isEmpty) {
       return;
     }
 
-    final start = refRows.isNotEmpty
-        ? refRows.map((row) => row.sortIdx ?? 0).reduce(max) + 1
+    final start = refRows!.isNotEmpty
+        ? refRows!.map((row) => row!.sortIdx ?? 0).reduce(max) + 1
         : 0;
 
     PlutoGridStateManager.initializeRows(
@@ -357,7 +362,7 @@ mixin RowState implements IPlutoGridState {
       start: start,
     );
 
-    refRows.addAll(rows);
+    refRows!.addAll(rows);
 
     notifyListeners();
   }
@@ -367,7 +372,7 @@ mixin RowState implements IPlutoGridState {
       return;
     }
 
-    refRows.removeAt(currentRowIdx);
+    refRows!.removeAt(currentRowIdx!);
 
     resetCurrentState(notify: false);
 
@@ -375,39 +380,39 @@ mixin RowState implements IPlutoGridState {
   }
 
   void removeRows(
-    List<PlutoRow> rows, {
+    List<PlutoRow?>? rows, {
     bool notify = true,
   }) {
     if (rows == null || rows.isEmpty) {
       return;
     }
 
-    final List<Key> removeKeys = rows.map((e) => e.key).toList(growable: false);
+    final List<Key> removeKeys =
+        rows.map((e) => e!.key).toList(growable: false);
 
     if (currentRowIdx != null &&
-        refRows.length > currentRowIdx &&
-        removeKeys.contains(refRows[currentRowIdx].key)) {
+        refRows!.length > currentRowIdx! &&
+        removeKeys.contains(refRows![currentRowIdx!]!.key)) {
       resetCurrentState(notify: false);
     }
 
-    Key selectingCellKey;
+    Key? selectingCellKey;
 
     if (hasCurrentSelectingPosition) {
-      selectingCellKey = refRows[currentSelectingPosition.rowIdx]
-          .cells
-          .entries
-          .elementAt(currentSelectingPosition.columnIdx)
+      selectingCellKey = refRows!
+          .originalList[currentSelectingPosition!.rowIdx!]!.cells.entries
+          .elementAt(currentSelectingPosition!.columnIdx!)
           .value
           .key;
     }
 
-    refRows.removeWhere((row) => removeKeys.contains(row.key));
+    refRows!.removeWhereFromOriginal((row) => removeKeys.contains(row!.key));
 
     updateCurrentCellPosition(notify: false);
 
     setCurrentSelectingPositionByCellKey(selectingCellKey, notify: false);
 
-    currentSelectingRows?.removeWhere((row) => removeKeys.contains(row.key));
+    currentSelectingRows.removeWhere((row) => removeKeys.contains(row!.key));
 
     if (notify) {
       notifyListeners();
@@ -415,36 +420,42 @@ mixin RowState implements IPlutoGridState {
   }
 
   void moveRowsByOffset(
-    List<PlutoRow> rows,
+    List<PlutoRow?>? rows,
     double offset, {
     bool notify = true,
   }) {
-    int indexToMove = getRowIdxByOffset(offset);
+    int? indexToMove = getRowIdxByOffset(offset);
 
     moveRowsByIndex(rows, indexToMove, notify: notify);
   }
 
   void moveRowsByIndex(
-    List<PlutoRow> rows,
-    int indexToMove, {
+    List<PlutoRow?>? rows,
+    int? indexToMove, {
     bool notify = true,
   }) {
     if (indexToMove == null) {
       return;
-    } else if (indexToMove + rows.length > refRows.length) {
-      indexToMove = refRows.length - rows.length;
+    }
+
+    if (page > 1) {
+      indexToMove += (page - 1) * pageSize;
+    }
+
+    if (indexToMove + rows!.length > refRows!.originalLength) {
+      indexToMove = refRows!.originalLength - rows.length;
     }
 
     rows.forEach((row) {
-      refRows.remove(row);
+      refRows!.removeFromOriginal(row);
     });
 
-    refRows.insertAll(indexToMove, rows);
+    refRows!.insertAll(indexToMove, rows.cast<PlutoRow>());
 
     int sortIdx = 0;
 
-    refRows.forEach((element) {
-      element.sortIdx = sortIdx++;
+    refRows!.originalList.forEach((element) {
+      element!.sortIdx = sortIdx++;
     });
 
     updateCurrentCellPosition(notify: false);
@@ -455,11 +466,11 @@ mixin RowState implements IPlutoGridState {
   }
 
   void toggleAllRowChecked(
-    bool flag, {
+    bool? flag, {
     bool notify = true,
   }) {
-    refRows.forEach((e) {
-      e.setChecked(flag == true);
+    refRows!.forEach((e) {
+      e!.setChecked(flag == true);
     });
 
     if (notify) {
@@ -469,15 +480,15 @@ mixin RowState implements IPlutoGridState {
 
   void _insertRows(
     int index,
-    List<PlutoRow> rows, {
-    PlutoRowState state,
+    List<PlutoRow?> rows, {
+    PlutoRowState? state,
   }) {
     if (state != null) {
       for (var row in rows) {
-        row.setState(state);
+        row!.setState(state);
       }
     }
 
-    refRows.insertAll(index, rows);
+    refRows!.insertAll(index, rows.cast<PlutoRow>());
   }
 }

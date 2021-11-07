@@ -28,6 +28,7 @@ import 'feature/listing_mode_screen.dart';
 import 'feature/moving_screen.dart';
 import 'feature/number_type_column_screen.dart';
 import 'feature/row_moving_screen.dart';
+import 'feature/row_pagination_screen.dart';
 import 'feature/row_selection_screen.dart';
 import 'feature/row_with_checkbox_screen.dart';
 import 'feature/selection_type_column_screen.dart';
@@ -285,6 +286,17 @@ class PlutoFeatures extends StatelessWidget {
             },
           ),
           PlutoListTile(
+            title: 'Row pagination',
+            description: 'You can paginate the rows.',
+            onTapLiveDemo: () {
+              Navigator.pushNamed(context, RowPaginationScreen.routeName);
+            },
+            trailing: const Icon(
+              Icons.fiber_new,
+              color: Colors.deepOrange,
+            ),
+          ),
+          PlutoListTile(
             title: 'Row with checkbox',
             description: 'You can select rows with checkbox.',
             onTapLiveDemo: () {
@@ -375,9 +387,7 @@ class PlutoContributors extends StatelessWidget {
         runSpacing: 10,
         children: [
           PlutoContributorTile(
-            name: 'Kim Manki',
-            description:
-                'My hobby is creating flutter packages for managers or business applications.',
+            name: 'Manki Kim',
             linkTitle: 'Github',
             onTapLink: () {
               launchUrl('https://github.com/bosskmk');
@@ -385,16 +395,34 @@ class PlutoContributors extends StatelessWidget {
           ),
           PlutoContributorTile(
             name: 'Alexey Volkov',
-            description: 'First contributor.',
             linkTitle: 'Github',
             onTapLink: () {
               launchUrl('https://github.com/ASGAlex');
             },
           ),
+          PlutoContributorTile(
+            name: 'MrCasCode',
+            linkTitle: 'Github',
+            onTapLink: () {
+              launchUrl('https://github.com/MrCasCode');
+            },
+          ),
+          PlutoContributorTile(
+            name: 'Wang Chuanbin',
+            linkTitle: 'Github',
+            onTapLink: () {
+              launchUrl('https://github.com/Chuanbin-Wang');
+            },
+          ),
+          PlutoContributorTile(
+            name: 'sheentim',
+            linkTitle: 'Github',
+            onTapLink: () {
+              launchUrl('https://github.com/sheentim');
+            },
+          ),
           PlutoContributorTile.invisible(
             name: 'And you.',
-            description:
-                'Anyone can contribute, code, tests, bug reports, documentation, etc.',
             linkTitle: 'Github',
             onTapLink: () {
               launchUrl('https://github.com/bosskmk/pluto_grid');

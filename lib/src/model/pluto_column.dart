@@ -14,7 +14,7 @@ class PlutoColumn {
   String field;
 
   /// Set the column type.
-  PlutoColumnType type;
+  PlutoColumnType? type;
 
   /// Set the width of the column.
   double width;
@@ -31,7 +31,7 @@ class PlutoColumn {
   PlutoColumnSort sort;
 
   /// Formatter for display of cell values.
-  PlutoColumnValueFormatter formatter;
+  PlutoColumnValueFormatter? formatter;
 
   /// Apply the formatter in the editing state.
   /// However, it is applied only when the cell is readonly
@@ -39,7 +39,7 @@ class PlutoColumn {
   bool applyFormatterInEditing;
 
   /// Rendering for cell widget.
-  PlutoColumnRenderer renderer;
+  PlutoColumnRenderer? renderer;
 
   /// Change the position of the column by dragging the column title.
   bool enableColumnDrag;
@@ -56,6 +56,10 @@ class PlutoColumn {
   /// Displays the right icon of the column title.
   bool enableContextMenu;
 
+  /// Diaplay the right icon for drop to resize the column
+  /// Valid only when [enableContextMenu] is noactivated.
+  bool enableDropToResize;
+
   /// Displays filter-related menus in the column context menu.
   /// Valid only when [enableContextMenu] is activated.
   bool enableFilterMenuItem;
@@ -69,15 +73,15 @@ class PlutoColumn {
   bool enableSetColumnsMenuItem;
 
   /// Entering the Enter key or tapping the cell enters the Editing mode.
-  bool enableEditingMode;
+  bool? enableEditingMode;
 
   /// Hide the column.
   bool hide;
 
   PlutoColumn({
-    @required this.title,
-    @required this.field,
-    @required this.type,
+    required this.title,
+    required this.field,
+    required this.type,
     this.width = PlutoGridSettings.columnWidth,
     this.minWidth = PlutoGridSettings.minColumnWidth,
     this.textAlign = PlutoColumnTextAlign.left,
@@ -91,6 +95,7 @@ class PlutoColumn {
     this.enableRowChecked = false,
     this.enableSorting = true,
     this.enableContextMenu = true,
+    this.enableDropToResize = false,
     this.enableFilterMenuItem = true,
     this.enableHideColumnMenuItem = true,
     this.enableSetColumnsMenuItem = true,
@@ -105,18 +110,18 @@ class PlutoColumn {
 
   bool get hasRenderer => renderer != null;
 
-  FocusNode _filterFocusNode;
+  FocusNode? _filterFocusNode;
 
-  FocusNode get filterFocusNode {
+  FocusNode? get filterFocusNode {
     return _filterFocusNode;
   }
 
-  PlutoFilterType _defaultFilter;
+  PlutoFilterType? _defaultFilter;
 
   PlutoFilterType get defaultFilter =>
       _defaultFilter ?? const PlutoFilterTypeContains();
 
-  void setFilterFocusNode(FocusNode node) {
+  void setFilterFocusNode(FocusNode? node) {
     _filterFocusNode = node;
   }
 
@@ -126,7 +131,7 @@ class PlutoColumn {
 
   String formattedValueForType(dynamic value) {
     if (type.isNumber) {
-      return type.number.applyFormat(value);
+      return type.number!.applyFormat(value);
     }
 
     return value.toString();
@@ -134,7 +139,7 @@ class PlutoColumn {
 
   String formattedValueForDisplay(dynamic value) {
     if (formatter != null) {
-      return formatter(value).toString();
+      return formatter!(value).toString();
     }
 
     return formattedValueForType(value);
@@ -143,10 +148,10 @@ class PlutoColumn {
   String formattedValueForDisplayInEditing(dynamic value) {
     if (formatter != null) {
       final bool allowFormatting =
-          type.readOnly || type.isSelect || type.isTime || type.isDate;
+          type!.readOnly! || type.isSelect || type.isTime || type.isDate;
 
       if (applyFormatterInEditing && allowFormatting) {
-        return formatter(value).toString();
+        return formatter!(value).toString();
       }
     }
 
@@ -155,15 +160,15 @@ class PlutoColumn {
 }
 
 class PlutoColumnRendererContext {
-  final PlutoColumn column;
+  final PlutoColumn? column;
 
-  final int rowIdx;
+  final int? rowIdx;
 
-  final PlutoRow row;
+  final PlutoRow? row;
 
-  final PlutoCell cell;
+  final PlutoCell? cell;
 
-  final PlutoGridStateManager stateManager;
+  final PlutoGridStateManager? stateManager;
 
   PlutoColumnRendererContext({
     this.column,
@@ -186,7 +191,7 @@ extension PlutoColumnTextAlignExtension on PlutoColumnTextAlign {
         : TextAlign.left;
   }
 
-  bool get isLeft => this == null || this == PlutoColumnTextAlign.left;
+  bool get isLeft => this == PlutoColumnTextAlign.left;
 
   bool get isRight => this == PlutoColumnTextAlign.right;
 }
@@ -199,7 +204,7 @@ enum PlutoColumnFrozen {
 
 extension PlutoColumnFrozenExtension on PlutoColumnFrozen {
   bool get isNone {
-    return this == null || this == PlutoColumnFrozen.none;
+    return this == PlutoColumnFrozen.none;
   }
 
   bool get isLeft {
@@ -223,7 +228,7 @@ enum PlutoColumnSort {
 
 extension PlutoColumnSortExtension on PlutoColumnSort {
   bool get isNone {
-    return this == null || this == PlutoColumnSort.none;
+    return this == PlutoColumnSort.none;
   }
 
   bool get isAscending {

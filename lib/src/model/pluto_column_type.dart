@@ -1,7 +1,7 @@
 import 'package:intl/intl.dart' as intl;
 
 abstract class PlutoColumnType {
-  bool readOnly;
+  bool? readOnly;
 
   dynamic defaultValue;
 
@@ -43,14 +43,16 @@ abstract class PlutoColumnType {
 
   /// Provides a selection list and sets it as a selection column.
   factory PlutoColumnType.select(
-    List<dynamic> items, {
+    List<dynamic>? items, {
     bool readOnly = false,
     dynamic defaultValue = '',
+    bool enableColumnFilter = false,
   }) {
     return PlutoColumnTypeSelect(
       readOnly: readOnly,
       defaultValue: defaultValue,
       items: items,
+      enableColumnFilter: enableColumnFilter,
     );
   }
 
@@ -66,8 +68,8 @@ abstract class PlutoColumnType {
   factory PlutoColumnType.date({
     bool readOnly = false,
     dynamic defaultValue = '',
-    DateTime startDate,
-    DateTime endDate,
+    DateTime? startDate,
+    DateTime? endDate,
     String format = 'yyyy-MM-dd',
     bool applyFormatOnInit = true,
   }) {
@@ -98,7 +100,7 @@ abstract class PlutoColumnType {
   dynamic makeCompareValue(dynamic v);
 }
 
-extension PlutoColumnTypeExtension on PlutoColumnType {
+extension PlutoColumnTypeExtension on PlutoColumnType? {
   bool get isText => this is PlutoColumnTypeText;
 
   bool get isNumber => this is PlutoColumnTypeNumber;
@@ -109,39 +111,39 @@ extension PlutoColumnTypeExtension on PlutoColumnType {
 
   bool get isTime => this is PlutoColumnTypeTime;
 
-  PlutoColumnTypeText get text {
+  PlutoColumnTypeText? get text {
     return this is PlutoColumnTypeText
-        ? this as PlutoColumnTypeText
+        ? this as PlutoColumnTypeText?
         : throw TypeError();
   }
 
-  PlutoColumnTypeNumber get number {
+  PlutoColumnTypeNumber? get number {
     return this is PlutoColumnTypeNumber
-        ? this as PlutoColumnTypeNumber
+        ? this as PlutoColumnTypeNumber?
         : throw TypeError();
   }
 
-  PlutoColumnTypeSelect get select {
+  PlutoColumnTypeSelect? get select {
     return this is PlutoColumnTypeSelect
-        ? this as PlutoColumnTypeSelect
+        ? this as PlutoColumnTypeSelect?
         : throw TypeError();
   }
 
-  PlutoColumnTypeDate get date {
+  PlutoColumnTypeDate? get date {
     return this is PlutoColumnTypeDate
-        ? this as PlutoColumnTypeDate
+        ? this as PlutoColumnTypeDate?
         : throw TypeError();
   }
 
-  PlutoColumnTypeTime get time {
+  PlutoColumnTypeTime? get time {
     return this is PlutoColumnTypeTime
-        ? this as PlutoColumnTypeTime
+        ? this as PlutoColumnTypeTime?
         : throw TypeError();
   }
 
   bool get hasFormat => this is _PlutoColumnTypeHasFormat;
 
-  bool get applyFormatOnInit =>
+  bool? get applyFormatOnInit =>
       hasFormat ? (this as _PlutoColumnTypeHasFormat).applyFormatOnInit : false;
 
   dynamic applyFormat(dynamic value) => hasFormat
@@ -166,7 +168,7 @@ extension PlutoColumnTypeExtension on PlutoColumnType {
 }
 
 class PlutoColumnTypeText implements PlutoColumnType {
-  bool readOnly;
+  bool? readOnly;
 
   dynamic defaultValue;
 
@@ -190,15 +192,15 @@ class PlutoColumnTypeText implements PlutoColumnType {
 
 class PlutoColumnTypeNumber
     implements PlutoColumnType, _PlutoColumnTypeHasFormat {
-  bool readOnly;
+  bool? readOnly;
 
   dynamic defaultValue;
 
-  bool negative;
+  bool? negative;
 
-  String format;
+  String? format;
 
-  bool applyFormatOnInit;
+  bool? applyFormatOnInit;
 
   PlutoColumnTypeNumber({
     this.readOnly,
@@ -221,8 +223,8 @@ class PlutoColumnTypeNumber
   }
 
   int compare(dynamic a, dynamic b) {
-    return compareWithNull(
-        a, b, () => int.parse(a.toString()).compareTo(int.parse(b.toString())));
+    return compareWithNull(a, b,
+        () => double.parse(a.toString()).compareTo(double.parse(b.toString())));
   }
 
   dynamic makeCompareValue(dynamic v) {
@@ -244,9 +246,9 @@ class PlutoColumnTypeNumber
   }
 
   int decimalRange() {
-    final int dotIndex = format.indexOf('.');
+    final int dotIndex = format!.indexOf('.');
 
-    return dotIndex < 0 ? 0 : format.substring(dotIndex).length - 1;
+    return dotIndex < 0 ? 0 : format!.substring(dotIndex).length - 1;
   }
 
   bool _isNumeric(dynamic s) {
@@ -258,25 +260,28 @@ class PlutoColumnTypeNumber
 }
 
 class PlutoColumnTypeSelect implements PlutoColumnType {
-  bool readOnly;
+  bool? readOnly;
 
   dynamic defaultValue;
 
-  List<dynamic> items;
+  List<dynamic>? items;
+
+  bool? enableColumnFilter;
 
   PlutoColumnTypeSelect({
     this.readOnly,
     this.defaultValue,
     this.items,
+    this.enableColumnFilter,
   });
 
-  bool isValid(dynamic value) => items.contains(value) == true;
+  bool isValid(dynamic value) => items!.contains(value) == true;
 
   int compare(dynamic a, dynamic b) {
     return compareWithNull(a, b, () {
-      final _a = items.indexOf(a);
+      final _a = items!.indexOf(a);
 
-      final _b = items.indexOf(b);
+      final _b = items!.indexOf(b);
 
       return _a.compareTo(_b);
     });
@@ -289,17 +294,17 @@ class PlutoColumnTypeSelect implements PlutoColumnType {
 
 class PlutoColumnTypeDate
     implements PlutoColumnType, _PlutoColumnTypeHasFormat {
-  bool readOnly;
+  bool? readOnly;
 
   dynamic defaultValue;
 
-  DateTime startDate;
+  DateTime? startDate;
 
-  DateTime endDate;
+  DateTime? endDate;
 
-  String format;
+  String? format;
 
-  bool applyFormatOnInit;
+  bool? applyFormatOnInit;
 
   PlutoColumnTypeDate({
     this.readOnly,
@@ -317,11 +322,11 @@ class PlutoColumnTypeDate
       return false;
     }
 
-    if (startDate != null && parsedDate.isBefore(startDate)) {
+    if (startDate != null && parsedDate.isBefore(startDate!)) {
       return false;
     }
 
-    if (endDate != null && parsedDate.isAfter(endDate)) {
+    if (endDate != null && parsedDate.isAfter(endDate!)) {
       return false;
     }
 
@@ -335,7 +340,7 @@ class PlutoColumnTypeDate
   dynamic makeCompareValue(dynamic v) {
     final dateFormat = intl.DateFormat(format);
 
-    DateTime dateFormatValue;
+    DateTime? dateFormatValue;
 
     try {
       dateFormatValue = dateFormat.parse(v.toString());
@@ -358,7 +363,7 @@ class PlutoColumnTypeDate
 }
 
 class PlutoColumnTypeTime implements PlutoColumnType {
-  bool readOnly;
+  bool? readOnly;
 
   dynamic defaultValue;
 
@@ -382,9 +387,9 @@ class PlutoColumnTypeTime implements PlutoColumnType {
 }
 
 abstract class _PlutoColumnTypeHasFormat {
-  String format;
+  String? format;
 
-  bool applyFormatOnInit;
+  bool? applyFormatOnInit;
 
   dynamic applyFormat(dynamic value);
 }

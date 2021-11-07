@@ -1,26 +1,30 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 import 'package:pluto_grid/pluto_grid.dart';
 
 import '../../helper/pluto_widget_test_helper.dart';
 import '../../helper/row_helper.dart';
-import '../../mock/mock_pluto_state_manager.dart';
+import 'pluto_grid_key_manager_test.mocks.dart';
 
+@GenerateMocks([], customMocks: [
+  MockSpec<PlutoGridStateManager>(returnNullOnMissingStub: true),
+])
 void main() {
-  PlutoGridStateManager stateManager;
+  late MockPlutoGridStateManager stateManager;
 
   PlutoGridConfiguration configuration;
 
-  FocusNode keyboardFocusNode;
+  late FocusNode keyboardFocusNode;
 
   setUp(() {
-    stateManager = MockPlutoStateManager();
+    stateManager = MockPlutoGridStateManager();
     configuration = PlutoGridConfiguration();
     when(stateManager.configuration).thenReturn(configuration);
     when(stateManager.rowTotalHeight).thenReturn(
-      RowHelper.resolveRowTotalHeight(stateManager.configuration.rowHeight),
+      RowHelper.resolveRowTotalHeight(stateManager.configuration!.rowHeight),
     );
     when(stateManager.localeText).thenReturn(const PlutoGridLocaleText());
     when(stateManager.gridFocusNode).thenReturn(FocusNode());
@@ -57,9 +61,10 @@ void main() {
         ),
       );
 
+      when(stateManager.isEditing).thenReturn(false);
       when(stateManager.currentSelectingText).thenReturn('copied');
 
-      String copied;
+      String? copied;
 
       SystemChannels.platform
           .setMockMethodCallHandler((MethodCall methodCall) async {
@@ -113,7 +118,7 @@ void main() {
       when(stateManager.isEditing).thenReturn(true);
       expect(stateManager.isEditing, true);
 
-      String copied;
+      String? copied;
 
       SystemChannels.platform
           .setMockMethodCallHandler((MethodCall methodCall) async {

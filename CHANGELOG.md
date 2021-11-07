@@ -1,3 +1,56 @@
+## [2.5.0] - 2021. 9. 22
+
+* flutter 2.5 compatible.
+* Added enableGridBorderShadow option to PlutoGridConfiguration.
+* Added enableColumnFilter option to Select column.
+
+## [2.4.1] - 2021. 8. 1
+
+* Fix pagination bug.
+
+## [2.4.0] - 2021. 7. 31
+
+* Added pagination. 
+* Added debounce on keyboard input in filter.
+
+## [2.3.0] - 2021. 7. 7
+
+* Added onDoubleTap, onSecondaryTap cell events.
+* Hide secondary scrollbar.
+
+## [2.2.1] - 2021. 6. 26
+
+* Added enableDropToResize option when creating a column. (enables an icon for adjusting the width of a column when there is no context menu)
+* Fix scroll bar drag behavior
+
+## [2.2.0] - 2021. 5. 29
+
+* Add callback to row checks developed by https://github.com/MrCasCode.
+
+## [2.1.0] - 2021. 5. 19
+
+* flutter 2.2.x compatible
+
+## [2.0.0] - 2021. 5. 14
+
+* Change scroll physics.
+* Fix a bug when dragging rows. 
+* Stable release.
+
+## [2.0.0-nullsafety.2] - 2021. 5. 1
+
+* Fix errors of tests on null-safety.
+* Fix focus problems on web.
+
+## [2.0.0-nullsafety.1] - 2021. 4. 15
+
+* Edit dependency.
+
+## [2.0.0-nullsafety.0] - 2021. 4. 9
+
+* Null safety version.
+* Fix CupertinoScrollBar error.(In flutter 2.1.0.xxx)
+
 ## [1.2.0] - 2021. 3. 13
 
 * Add moveRowsByIndex.

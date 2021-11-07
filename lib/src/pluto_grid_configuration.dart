@@ -1,3 +1,4 @@
+import 'package:collection/collection.dart' show IterableExtension;
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:pluto_grid/pluto_grid.dart';
@@ -7,6 +8,9 @@ import 'helper/filter_helper.dart';
 class PlutoGridConfiguration {
   /// border between columns.
   final bool enableColumnBorder;
+
+  /// Activate the shadow that separates each area of the grid.
+  final bool enableGridBorderShadow;
 
   final Color gridBackgroundColor;
 
@@ -68,6 +72,7 @@ class PlutoGridConfiguration {
 
   PlutoGridConfiguration({
     this.enableColumnBorder = false,
+    this.enableGridBorderShadow = true,
     this.gridBackgroundColor = Colors.white,
     this.gridBorderColor = const Color(0xFFA1A5AE),
     this.activatedColor = const Color(0xFFDCF5FF),
@@ -101,6 +106,7 @@ class PlutoGridConfiguration {
 
   PlutoGridConfiguration.dark({
     this.enableColumnBorder = false,
+    this.enableGridBorderShadow = true,
     this.gridBackgroundColor = const Color(0xFF111111),
     this.gridBorderColor = const Color(0xFF000000),
     this.activatedColor = const Color(0xFF313131),
@@ -145,7 +151,7 @@ class PlutoGridConfiguration {
   }
 
   /// Fired when setConfiguration is called in [PlutoGridStateManager]'s constructor.
-  void applyColumnFilter(List<PlutoColumn> refColumns) {
+  void applyColumnFilter(List<PlutoColumn>? refColumns) {
     if (refColumns == null || refColumns.isEmpty) {
       return;
     }
@@ -162,25 +168,25 @@ class PlutoGridConfiguration {
   }
 
   PlutoGridConfiguration copyWith({
-    bool enableColumnBorder,
-    Color gridBackgroundColor,
-    Color gridBorderColor,
-    Color activatedColor,
-    Color activatedBorderColor,
-    Color checkedColor,
-    Color borderColor,
-    Color cellColorInEditState,
-    Color cellColorInReadOnlyState,
-    TextStyle columnTextStyle,
-    TextStyle cellTextStyle,
-    Color iconColor,
-    Color menuBackgroundColor,
-    double rowHeight,
-    bool enableMoveDownAfterSelecting,
-    PlutoGridEnterKeyAction enterKeyAction,
-    PlutoGridLocaleText localeText,
-    PlutoGridScrollbarConfig scrollbarConfig,
-    PlutoGridColumnFilterConfig columnFilterConfig,
+    bool? enableColumnBorder,
+    Color? gridBackgroundColor,
+    Color? gridBorderColor,
+    Color? activatedColor,
+    Color? activatedBorderColor,
+    Color? checkedColor,
+    Color? borderColor,
+    Color? cellColorInEditState,
+    Color? cellColorInReadOnlyState,
+    TextStyle? columnTextStyle,
+    TextStyle? cellTextStyle,
+    Color? iconColor,
+    Color? menuBackgroundColor,
+    double? rowHeight,
+    bool? enableMoveDownAfterSelecting,
+    PlutoGridEnterKeyAction? enterKeyAction,
+    PlutoGridLocaleText? localeText,
+    PlutoGridScrollbarConfig? scrollbarConfig,
+    PlutoGridColumnFilterConfig? columnFilterConfig,
   }) {
     return PlutoGridConfiguration(
       enableColumnBorder: enableColumnBorder ?? this.enableColumnBorder,
@@ -451,6 +457,86 @@ class PlutoGridLocaleText {
     // Common
     this.loadingText = 'Načítání...',
   });
+
+  const PlutoGridLocaleText.brazilianPortuguese({
+    // Column menu
+    this.unfreezeColumn = 'Descongelar',
+    this.freezeColumnToLeft = 'Congelar à esquerda',
+    this.freezeColumnToRight = 'Congelar à direita',
+    this.autoFitColumn = 'Auto Ajustar',
+    this.hideColumn = 'Esconder coluna',
+    this.setColumns = 'Definir coluneas',
+    this.setFilter = 'Definir fitros',
+    this.resetFilter = 'Limpar filtros',
+    // SetColumns popup
+    this.setColumnsTitle = 'Título da coluna',
+    // Filter popup
+    this.filterColumn = 'Coluna',
+    this.filterType = 'Tipo',
+    this.filterValue = 'Valor',
+    this.filterAllColumns = 'Todas as colunas',
+    this.filterContains = 'Contenha',
+    this.filterEquals = 'Igual',
+    this.filterStartsWith = 'Iniciar com',
+    this.filterEndsWith = 'Terminar com',
+    this.filterGreaterThan = 'Maior que',
+    this.filterGreaterThanOrEqualTo = 'Maior ou igual que',
+    this.filterLessThan = 'Menor que',
+    this.filterLessThanOrEqualTo = 'Menor ou igual que',
+    // Date popup
+    this.sunday = 'Dom',
+    this.monday = 'Seg',
+    this.tuesday = 'Ter',
+    this.wednesday = 'Qua',
+    this.thursday = 'Qui',
+    this.friday = 'Sex',
+    this.saturday = 'Sab',
+    // Time column popup
+    this.hour = 'Hora',
+    this.minute = 'Minuto',
+    // Common
+    this.loadingText = 'Carregando...',
+  });
+
+  const PlutoGridLocaleText.spanish({
+    // Column menu
+    this.unfreezeColumn = 'Descongelar',
+    this.freezeColumnToLeft = 'Congelar a la izquierda',
+    this.freezeColumnToRight = 'Congelar a la derecha',
+    this.autoFitColumn = 'Autoajuste',
+    this.hideColumn = 'Ocultar columna',
+    this.setColumns = 'Eligir columnas',
+    this.setFilter = 'Definir fitros',
+    this.resetFilter = 'Limpiar filtros',
+    // SetColumns popup
+    this.setColumnsTitle = 'Título de la columna',
+    // Filter popup
+    this.filterColumn = 'Columna',
+    this.filterType = 'Tipo',
+    this.filterValue = 'Valor',
+    this.filterAllColumns = 'Todas las columnas',
+    this.filterContains = 'Contenga',
+    this.filterEquals = 'Igual',
+    this.filterStartsWith = 'Empezar con',
+    this.filterEndsWith = 'Terminar con',
+    this.filterGreaterThan = 'Más grande que',
+    this.filterGreaterThanOrEqualTo = 'Más grande o igual que',
+    this.filterLessThan = 'Más pequeño que',
+    this.filterLessThanOrEqualTo = 'Más pequeño o igual que',
+    // Date popup
+    this.sunday = 'Dom',
+    this.monday = 'Lu',
+    this.tuesday = 'Ma',
+    this.wednesday = 'Mi',
+    this.thursday = 'Ju',
+    this.friday = 'Vi',
+    this.saturday = 'Sa',
+    // Time column popup
+    this.hour = 'Hora',
+    this.minute = 'Minuto',
+    // Common
+    this.loadingText = 'Cargando...',
+  });
 }
 
 enum PlutoGridEnterKeyAction {
@@ -469,7 +555,7 @@ extension PlutoGridEnterKeyActionExtension on PlutoGridEnterKeyAction {
 
   bool get isToggleEditing => this == PlutoGridEnterKeyAction.toggleEditing;
 
-  bool get isNone => this == null || this == PlutoGridEnterKeyAction.none;
+  bool get isNone => this == PlutoGridEnterKeyAction.none;
 }
 
 /// Allows to customise scrollbars "look and feel"
@@ -553,36 +639,45 @@ class PlutoGridColumnFilterConfig {
   /// }
   /// ```
   const PlutoGridColumnFilterConfig({
-    List<PlutoFilterType> filters,
-    PlutoGridResolveDefaultColumnFilter resolveDefaultColumnFilter,
+    List<PlutoFilterType>? filters,
+    PlutoGridResolveDefaultColumnFilter? resolveDefaultColumnFilter,
+    int? debounceMilliseconds,
   })  : _userFilters = filters,
-        _userResolveDefaultColumnFilter = resolveDefaultColumnFilter;
+        _userResolveDefaultColumnFilter = resolveDefaultColumnFilter,
+        _debounceMilliseconds = debounceMilliseconds == null
+            ? PlutoGridSettings.debounceMillisecondsForColumnFilter
+            : debounceMilliseconds < 0
+                ? 0
+                : debounceMilliseconds;
 
-  final List<PlutoFilterType> _userFilters;
+  final List<PlutoFilterType>? _userFilters;
 
-  final PlutoGridResolveDefaultColumnFilter _userResolveDefaultColumnFilter;
+  final PlutoGridResolveDefaultColumnFilter? _userResolveDefaultColumnFilter;
 
-  bool get hasUserFilter => _userFilters != null && _userFilters.isNotEmpty;
+  final int _debounceMilliseconds;
 
-  List<PlutoFilterType> get filters =>
+  bool get hasUserFilter => _userFilters != null && _userFilters!.isNotEmpty;
+
+  List<PlutoFilterType>? get filters =>
       hasUserFilter ? _userFilters : FilterHelper.defaultFilters;
 
+  int get debounceMilliseconds => _debounceMilliseconds;
+
   PlutoFilterType resolver<T>() {
-    return filters.firstWhere(
+    return filters!.firstWhereOrNull(
           (element) => element.runtimeType == T,
-          orElse: () => null,
         ) ??
-        filters.first;
+        filters!.first;
   }
 
   PlutoFilterType getDefaultColumnFilter(PlutoColumn column) {
     if (_userResolveDefaultColumnFilter == null) {
-      return filters.first;
+      return filters!.first;
     }
 
-    var resolvedFilter = _userResolveDefaultColumnFilter(column, resolver);
+    var resolvedFilter = _userResolveDefaultColumnFilter!(column, resolver);
 
-    assert(filters.contains(resolvedFilter));
+    assert(filters!.contains(resolvedFilter));
 
     return resolvedFilter;
   }

@@ -13,11 +13,11 @@ class RowWithCheckboxScreen extends StatefulWidget {
 }
 
 class _RowWithCheckboxScreenState extends State<RowWithCheckboxScreen> {
-  List<PlutoColumn> columns;
+  List<PlutoColumn>? columns;
 
-  List<PlutoRow> rows;
+  List<PlutoRow>? rows;
 
-  PlutoGridStateManager stateManager;
+  PlutoGridStateManager? stateManager;
 
   @override
   void initState() {
@@ -56,6 +56,17 @@ class _RowWithCheckboxScreenState extends State<RowWithCheckboxScreen> {
     rows = DummyData.rowsByColumns(length: 15, columns: columns);
   }
 
+  void handleOnRowChecked(PlutoGridOnRowCheckedEvent event) {
+    if (event.isRow) {
+      // or event.isAll
+      print('Toggled A Row.');
+      print(event.row?.cells['column1']?.value);
+    } else {
+      print('Toggled All Rows.');
+      print(stateManager?.checkedRows.length);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return PlutoExampleScreen(
@@ -79,10 +90,11 @@ class _RowWithCheckboxScreenState extends State<RowWithCheckboxScreen> {
           print(event);
         },
         onLoaded: (PlutoGridOnLoadedEvent event) {
-          event.stateManager.setSelectingMode(PlutoGridSelectingMode.row);
+          event.stateManager!.setSelectingMode(PlutoGridSelectingMode.row);
 
           stateManager = event.stateManager;
         },
+        onRowChecked: handleOnRowChecked,
         // configuration: PlutoConfiguration.dark(),
       ),
     );

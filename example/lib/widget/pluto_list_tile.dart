@@ -5,25 +5,29 @@ import '../constants/pluto_grid_example_colors.dart';
 class PlutoListTile extends StatelessWidget {
   final String title;
 
-  final String description;
+  final String? description;
 
-  final Function() onTapPreview;
+  final Function()? onTapPreview;
 
-  final Function() onTapLiveDemo;
+  final Function()? onTapLiveDemo;
+
+  final Widget? trailing;
 
   PlutoListTile({
-    @required this.title,
+    required this.title,
     this.description,
     this.onTapPreview,
     this.onTapLiveDemo,
+    this.trailing,
   })  : _color = Colors.white,
         _fontColor = PlutoGridExampleColors.fontColor;
 
   PlutoListTile.dark({
-    @required this.title,
+    required this.title,
     this.description,
     this.onTapPreview,
     this.onTapLiveDemo,
+    this.trailing,
   })  : _color = Colors.black87,
         _fontColor = Colors.white70;
 
@@ -44,6 +48,7 @@ class PlutoListTile extends StatelessWidget {
         child: SingleChildScrollView(
           scrollDirection: Axis.vertical,
           child: ListTile(
+            trailing: trailing,
             title: Text(
               title,
               style: const TextStyle(
@@ -74,7 +79,7 @@ class PlutoListTile extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.symmetric(vertical: 5),
                   child: Text(
-                    description,
+                    description!,
                     style: TextStyle(
                       color: _fontColor,
                       fontWeight: FontWeight.w600,

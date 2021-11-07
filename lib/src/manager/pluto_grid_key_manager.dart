@@ -8,7 +8,7 @@ class PlutoGridKeyManager {
   PlutoGridStateManager stateManager;
 
   PlutoGridKeyManager({
-    this.stateManager,
+    required this.stateManager,
   });
 
   PublishSubject<PlutoKeyManagerEvent> subject =
@@ -146,7 +146,7 @@ class PlutoGridKeyManager {
 
       stateManager.moveSelectingCellByRowIdx(rowIdx, direction);
     } else {
-      int rowIdx = stateManager.currentRowIdx;
+      int rowIdx = stateManager.currentRowIdx!;
 
       rowIdx += plutoKeyManagerEvent.isPageUp ? -moveCount : moveCount;
 
@@ -157,14 +157,14 @@ class PlutoGridKeyManager {
   void _handleEnter(PlutoKeyManagerEvent plutoKeyManagerEvent) {
     // In SelectRow mode, the current Row is passed to the onSelected callback.
     if (stateManager.mode.isSelect) {
-      stateManager.onSelected(PlutoGridOnSelectedEvent(
+      stateManager.onSelected!(PlutoGridOnSelectedEvent(
         row: stateManager.currentRow,
         cell: stateManager.currentCell,
       ));
       return;
     }
 
-    if (stateManager.configuration.enterKeyAction.isNone) {
+    if (stateManager.configuration!.enterKeyAction.isNone) {
       return;
     }
 
@@ -177,8 +177,10 @@ class PlutoGridKeyManager {
 
       if (kIsWeb &&
           lastChildContext is StatefulElement &&
-          lastChildContext?.dirty != true &&
-          lastChildContext.widget is EditableText) {
+          lastChildContext.state.widget is Focus &&
+          (lastChildContext.state.widget as Focus).focusNode?.hasPrimaryFocus ==
+              false &&
+          stateManager.currentColumn?.type! is PlutoColumnTypeText) {
         PlutoLog(
           'Enter twice when entering Korean on the web.',
           type: PlutoLogType.todo,
@@ -187,9 +189,9 @@ class PlutoGridKeyManager {
         return;
       }
 
-      if (stateManager.configuration.enterKeyAction.isToggleEditing) {
+      if (stateManager.configuration!.enterKeyAction.isToggleEditing) {
       } else if (stateManager
-          .configuration.enterKeyAction.isEditingAndMoveDown) {
+          .configuration!.enterKeyAction.isEditingAndMoveDown) {
         if (plutoKeyManagerEvent.event.isShiftPressed) {
           stateManager.moveCurrentCell(
             PlutoMoveDirection.up,
@@ -202,7 +204,7 @@ class PlutoGridKeyManager {
           );
         }
       } else if (stateManager
-          .configuration.enterKeyAction.isEditingAndMoveRight) {
+          .configuration!.enterKeyAction.isEditingAndMoveRight) {
         if (plutoKeyManagerEvent.event.isShiftPressed) {
           stateManager.moveCurrentCell(
             PlutoMoveDirection.left,
@@ -242,7 +244,7 @@ class PlutoGridKeyManager {
   void _handleEsc(PlutoKeyManagerEvent plutoKeyManagerEvent) {
     if (stateManager.mode.isSelect ||
         (stateManager.mode.isPopup && !stateManager.isEditing)) {
-      stateManager.onSelected(PlutoGridOnSelectedEvent(
+      stateManager.onSelected!(PlutoGridOnSelectedEvent(
         row: null,
         cell: null,
       ));
@@ -273,7 +275,7 @@ class PlutoGridKeyManager {
 
     Clipboard.getData('text/plain').then((value) {
       List<List<String>> textList =
-          PlutoClipboardTransformation.stringToList(value.text);
+          PlutoClipboardTransformation.stringToList(value!.text!);
 
       stateManager.pasteCellValue(textList);
     });
@@ -291,8 +293,10 @@ class PlutoGridKeyManager {
     if (stateManager.isEditing != true && stateManager.currentCell != null) {
       stateManager.setEditing(true);
 
-      stateManager.changeCellValue(stateManager.currentCell.key,
-          plutoKeyManagerEvent.event.logicalKey.keyLabel);
+      stateManager.changeCellValue(
+        stateManager.currentCell!.key,
+        plutoKeyManagerEvent.event.character,
+      );
     }
   }
 }

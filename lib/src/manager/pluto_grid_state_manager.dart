@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:linked_scroll_controller/linked_scroll_controller.dart';
-import 'package:pluto_filtered_list/pluto_filtered_list.dart';
 import 'package:pluto_grid/pluto_grid.dart';
 
 import 'state/cell_state.dart';
@@ -12,6 +11,7 @@ import 'state/focus_state.dart';
 import 'state/grid_state.dart';
 import 'state/keyboard_state.dart';
 import 'state/layout_state.dart';
+import 'state/pagination_row_state.dart';
 import 'state/row_state.dart';
 import 'state/scroll_state.dart';
 import 'state/selecting_state.dart';
@@ -27,6 +27,7 @@ abstract class IPlutoGridState extends PlutoChangeNotifier
         IGridState,
         IKeyboardState,
         ILayoutState,
+        IPaginationRowState,
         IRowState,
         IScrollState,
         ISelectingState {}
@@ -42,22 +43,26 @@ class PlutoGridState extends PlutoChangeNotifier
         GridState,
         KeyboardState,
         LayoutState,
+        PaginationRowState,
         RowState,
         ScrollState,
         SelectingState {}
 
 class PlutoGridStateManager extends PlutoGridState {
   PlutoGridStateManager({
-    @required List<PlutoColumn> columns,
-    @required List<PlutoRow> rows,
-    @required FocusNode gridFocusNode,
-    @required PlutoGridScrollController scroll,
-    PlutoGridMode mode,
-    PlutoOnChangedEventCallback onChangedEventCallback,
-    PlutoOnSelectedEventCallback onSelectedEventCallback,
-    CreateHeaderCallBack createHeader,
-    CreateFooterCallBack createFooter,
-    PlutoGridConfiguration configuration,
+    required List<PlutoColumn>? columns,
+    required List<PlutoRow?>? rows,
+    required FocusNode? gridFocusNode,
+    required PlutoGridScrollController? scroll,
+    PlutoGridMode? mode,
+    PlutoOnChangedEventCallback? onChangedEventCallback,
+    PlutoOnSelectedEventCallback? onSelectedEventCallback,
+    PlutoOnRowCheckedEventCallback? onRowCheckedEventCallback,
+    PlutoOnRowDoubleTapEventCallback? onRowDoubleTapEventCallback,
+    PlutoOnRowSecondaryTapEventCallback? onRowSecondaryTapEventCallback,
+    CreateHeaderCallBack? createHeader,
+    CreateFooterCallBack? createFooter,
+    PlutoGridConfiguration? configuration,
   }) {
     refColumns = FilteredList(initialList: columns);
     refRows = FilteredList(initialList: rows);
@@ -66,6 +71,9 @@ class PlutoGridStateManager extends PlutoGridState {
     setGridMode(mode);
     setOnChanged(onChangedEventCallback);
     setOnSelected(onSelectedEventCallback);
+    setOnRowChecked(onRowCheckedEventCallback);
+    setOnRowDoubleTap(onRowDoubleTapEventCallback);
+    setOnRowSecondaryTap(onRowSecondaryTapEventCallback);
     setCreateHeader(createHeader);
     setCreateFooter(createFooter);
     setConfiguration(configuration);
@@ -76,11 +84,11 @@ class PlutoGridStateManager extends PlutoGridState {
       PlutoGridSelectingMode.none.items;
 
   static void initializeRows(
-    List<PlutoColumn> refColumns,
-    List<PlutoRow> refRows, {
+    List<PlutoColumn>? refColumns,
+    List<PlutoRow?>? refRows, {
     bool forceApplySortIdx = false,
     bool increase = true,
-    int start = 0,
+    int? start = 0,
   }) {
     if (refColumns == null ||
         refColumns.isEmpty ||
@@ -95,7 +103,7 @@ class PlutoGridStateManager extends PlutoGridState {
       _ApplyRowForSortIdx(
         forceApply: forceApplySortIdx,
         increase: increase,
-        start: start,
+        start: start ?? 0,
         firstRow: refRows.first,
       ),
     ]);
@@ -113,51 +121,51 @@ class PlutoGridStateManager extends PlutoGridState {
 }
 
 class PlutoGridScrollController {
-  LinkedScrollControllerGroup vertical;
+  LinkedScrollControllerGroup? vertical;
 
-  LinkedScrollControllerGroup horizontal;
+  LinkedScrollControllerGroup? horizontal;
 
   PlutoGridScrollController({
     this.vertical,
     this.horizontal,
   });
 
-  ScrollController get bodyRowsHorizontal => _bodyRowsHorizontal;
+  ScrollController? get bodyRowsHorizontal => _bodyRowsHorizontal;
 
-  ScrollController _bodyRowsHorizontal;
+  ScrollController? _bodyRowsHorizontal;
 
-  ScrollController get bodyRowsVertical => _bodyRowsVertical;
+  ScrollController? get bodyRowsVertical => _bodyRowsVertical;
 
-  ScrollController _bodyRowsVertical;
+  ScrollController? _bodyRowsVertical;
 
   double get maxScrollHorizontal {
     assert(_bodyRowsHorizontal != null);
 
-    return _bodyRowsHorizontal.position.maxScrollExtent;
+    return _bodyRowsHorizontal!.position.maxScrollExtent;
   }
 
   double get maxScrollVertical {
     assert(_bodyRowsVertical != null);
 
-    return _bodyRowsVertical.position.maxScrollExtent;
+    return _bodyRowsVertical!.position.maxScrollExtent;
   }
 
-  double get verticalOffset => vertical.offset;
+  double get verticalOffset => vertical!.offset;
 
-  double get horizontalOffset => horizontal.offset;
+  double get horizontalOffset => horizontal!.offset;
 
-  void setBodyRowsHorizontal(ScrollController scrollController) {
+  void setBodyRowsHorizontal(ScrollController? scrollController) {
     _bodyRowsHorizontal = scrollController;
   }
 
-  void setBodyRowsVertical(ScrollController scrollController) {
+  void setBodyRowsVertical(ScrollController? scrollController) {
     _bodyRowsVertical = scrollController;
   }
 }
 
 class PlutoGridCellPosition {
-  int columnIdx;
-  int rowIdx;
+  int? columnIdx;
+  int? rowIdx;
 
   PlutoGridCellPosition({
     this.columnIdx,
@@ -174,8 +182,8 @@ class PlutoGridCellPosition {
 }
 
 class PlutoGridSelectingCellPosition {
-  String field;
-  int rowIdx;
+  String? field;
+  int? rowIdx;
 
   PlutoGridSelectingCellPosition({
     this.field,
@@ -237,7 +245,7 @@ extension PlutoGridSelectingModeExtension on PlutoGridSelectingMode {
 abstract class _Apply {
   bool get apply;
 
-  void execute(PlutoRow row);
+  void execute(PlutoRow? row);
 }
 
 class _ApplyList implements _Apply {
@@ -249,7 +257,7 @@ class _ApplyList implements _Apply {
 
   bool get apply => list.isNotEmpty;
 
-  void execute(PlutoRow row) {
+  void execute(PlutoRow? row) {
     var len = list.length;
 
     for (var i = 0; i < len; i += 1) {
@@ -265,9 +273,9 @@ class _ApplyCellForSetColumn implements _Apply {
 
   bool get apply => true;
 
-  void execute(PlutoRow row) {
+  void execute(PlutoRow? row) {
     refColumns.forEach((element) {
-      row.cells[element.field].setColumn(element);
+      row!.cells[element.field]!.setColumn(element);
     });
   }
 }
@@ -278,25 +286,25 @@ class _ApplyCellForFormat implements _Apply {
   _ApplyCellForFormat(
     this.refColumns,
   ) {
-    assert(refColumns != null && refColumns.isNotEmpty);
+    assert(refColumns.isNotEmpty);
 
     columnsToApply = refColumns
-        .where((element) => element.type.applyFormatOnInit)
+        .where((element) => element.type.applyFormatOnInit!)
         .toList(growable: false);
   }
 
-  List<PlutoColumn> columnsToApply;
+  late List<PlutoColumn> columnsToApply;
 
   bool get apply => columnsToApply.isNotEmpty;
 
-  void execute(PlutoRow row) {
+  void execute(PlutoRow? row) {
     columnsToApply.forEach((column) {
-      row.cells[column.field].value =
-          column.type.applyFormat(row.cells[column.field].value);
+      row!.cells[column.field]!.value =
+          column.type.applyFormat(row.cells[column.field]!.value);
 
       if (column.type.isNumber) {
-        row.cells[column.field].value = num.tryParse(
-              row.cells[column.field].value.toString().replaceAll(',', ''),
+        row.cells[column.field]!.value = num.tryParse(
+              row.cells[column.field]!.value.toString().replaceAll(',', ''),
             ) ??
             0;
       }
@@ -311,28 +319,25 @@ class _ApplyRowForSortIdx implements _Apply {
 
   final int start;
 
-  final PlutoRow firstRow;
+  final PlutoRow? firstRow;
 
   _ApplyRowForSortIdx({
-    @required this.forceApply,
-    @required this.increase,
-    @required this.start,
-    @required this.firstRow,
+    required this.forceApply,
+    required this.increase,
+    required this.start,
+    required this.firstRow,
   }) {
-    assert(forceApply != null);
-    assert(increase != null);
-    assert(start != null);
     assert(firstRow != null);
 
     _sortIdx = start;
   }
 
-  int _sortIdx;
+  late int _sortIdx;
 
-  bool get apply => forceApply == true || firstRow.sortIdx == null;
+  bool get apply => forceApply == true || firstRow!.sortIdx == null;
 
-  void execute(PlutoRow row) {
-    row.sortIdx = _sortIdx;
+  void execute(PlutoRow? row) {
+    row!.sortIdx = _sortIdx;
 
     _sortIdx = increase ? ++_sortIdx : --_sortIdx;
   }

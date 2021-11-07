@@ -4,9 +4,9 @@ import 'package:pluto_grid/pluto_grid.dart';
 import 'mixin_text_cell.dart';
 
 class PlutoTextCell extends StatefulWidget implements AbstractMixinTextCell {
-  final PlutoGridStateManager stateManager;
-  final PlutoCell cell;
-  final PlutoColumn column;
+  final PlutoGridStateManager? stateManager;
+  final PlutoCell? cell;
+  final PlutoColumn? column;
 
   PlutoTextCell({
     this.stateManager,
@@ -21,10 +21,9 @@ class PlutoTextCell extends StatefulWidget implements AbstractMixinTextCell {
 class _PlutoTextCellState extends State<PlutoTextCell>
     with MixinTextCell<PlutoTextCell> {
   @override
-  @override
   Widget build(BuildContext context) {
-    if (widget.stateManager.keepFocus) {
-      cellFocus.requestFocus();
+    if (widget.stateManager!.keepFocus) {
+      cellFocus!.requestFocus();
     }
 
     return buildTextField(
