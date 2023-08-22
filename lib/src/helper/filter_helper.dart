@@ -459,7 +459,7 @@ class _FilterPopupHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return NotificationListener<OverscrollIndicatorNotification>(
         onNotification: (overscroll) {
-          overscroll.disallowGlow();
+          overscroll.disallowIndicator();
           return true;
         },
         child: SingleChildScrollView(

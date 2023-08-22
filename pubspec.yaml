@@ -11,13 +11,15 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  intl: ^0.17.0
-  rxdart: ^0.27.2
+  intl: ^0.18.1
+  rxdart: ^0.27.7
   linked_scroll_controller: ^0.2.0
-  collection: ^1.15.0
+
+dependency_overrides:
+  collection: ^1.18.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  mockito: ^5.0.16
-  build_runner: ^2.1.2
+  mockito: ^5.4.2
+  build_runner: ^2.4.6
