@@ -17,6 +17,9 @@ dependencies:
 
 dependency_overrides:
   collection: ^1.18.0
+  watcher: ^1.1.0
+  file: ^7.0.0
+  pub_semver: ^2.1.4
 
 dev_dependencies:
   flutter_test:
