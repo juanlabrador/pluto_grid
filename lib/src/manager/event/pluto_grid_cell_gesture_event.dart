@@ -1,49 +1,42 @@
 import 'package:flutter/material.dart';
 import 'package:pluto_grid/pluto_grid.dart';
 
+/// [PlutoCell] This event handles the gesture of the widget.
 class PlutoGridCellGestureEvent extends PlutoGridEvent {
-  final PlutoGridGestureType? gestureType;
-  final Offset? offset;
-  final PlutoCell? cell;
-  final PlutoColumn? column;
-  final int? rowIdx;
+  final PlutoGridGestureType gestureType;
+  final Offset offset;
+  final PlutoCell cell;
+  final PlutoColumn column;
+  final int rowIdx;
 
   PlutoGridCellGestureEvent({
-    this.gestureType,
-    this.offset,
-    this.cell,
-    this.column,
-    this.rowIdx,
-  }) : super();
+    required this.gestureType,
+    required this.offset,
+    required this.cell,
+    required this.column,
+    required this.rowIdx,
+  });
 
   @override
-  void handler(PlutoGridStateManager? stateManager) {
-    if (gestureType == null ||
-        offset == null ||
-        cell == null ||
-        column == null ||
-        rowIdx == null) {
-      return;
-    }
-
+  void handler(PlutoGridStateManager stateManager) {
     switch (gestureType) {
       case PlutoGridGestureType.onTapUp:
-        _onTapUp(stateManager!);
+        _onTapUp(stateManager);
         break;
       case PlutoGridGestureType.onLongPressStart:
-        _onLongPressStart(stateManager!);
+        _onLongPressStart(stateManager);
         break;
       case PlutoGridGestureType.onLongPressMoveUpdate:
-        _onLongPressMoveUpdate(stateManager!);
+        _onLongPressMoveUpdate(stateManager);
         break;
       case PlutoGridGestureType.onLongPressEnd:
-        _onLongPressEnd(stateManager!);
+        _onLongPressEnd(stateManager);
         break;
       case PlutoGridGestureType.onDoubleTap:
-        _onDoubleTap(stateManager!);
+        _onDoubleTap(stateManager);
         break;
       case PlutoGridGestureType.onSecondaryTap:
-        _onSecondaryTap(stateManager!);
+        _onSecondaryTap(stateManager);
         break;
       default:
     }
@@ -55,7 +48,7 @@ class PlutoGridCellGestureEvent extends PlutoGridEvent {
     } else if (stateManager.isSelectingInteraction()) {
       _selecting(stateManager);
       return;
-    } else if (stateManager.mode.isSelect) {
+    } else if (stateManager.mode.isSelectMode) {
       _selectMode(stateManager);
       return;
     }
@@ -82,25 +75,45 @@ class PlutoGridCellGestureEvent extends PlutoGridEvent {
 
     stateManager.setCurrentSelectingPositionWithOffset(offset);
 
-    stateManager.eventManager!.addEvent(PlutoGridMoveUpdateEvent(
-      offset: offset,
-    ));
+    stateManager.eventManager!.addEvent(
+      PlutoGridScrollUpdateEvent(offset: offset),
+    );
   }
 
   void _onLongPressEnd(PlutoGridStateManager stateManager) {
     _setCurrentCell(stateManager, cell, rowIdx);
 
     stateManager.setSelecting(false);
+
+    PlutoGridScrollUpdateEvent.stopScroll(
+      stateManager,
+      PlutoGridScrollUpdateDirection.all,
+    );
+
+    if (stateManager.mode.isMultiSelectMode) {
+      stateManager.handleOnSelected();
+    }
   }
 
   void _onDoubleTap(PlutoGridStateManager stateManager) {
-    stateManager.onRowDoubleTap!(PlutoGridOnRowDoubleTapEvent(
-        row: stateManager.getRowByIdx(rowIdx), cell: cell));
+    stateManager.onRowDoubleTap!(
+      PlutoGridOnRowDoubleTapEvent(
+        row: stateManager.getRowByIdx(rowIdx)!,
+        rowIdx: rowIdx,
+        cell: cell,
+      ),
+    );
   }
 
   void _onSecondaryTap(PlutoGridStateManager stateManager) {
-    stateManager.onRowSecondaryTap!(PlutoGridOnRowSecondaryTapEvent(
-        row: stateManager.getRowByIdx(rowIdx), cell: cell, offset: offset));
+    stateManager.onRowSecondaryTap!(
+      PlutoGridOnRowSecondaryTapEvent(
+        row: stateManager.getRowByIdx(rowIdx)!,
+        rowIdx: rowIdx,
+        cell: cell,
+        offset: offset,
+      ),
+    );
   }
 
   bool _setKeepFocusAndCurrentCell(PlutoGridStateManager stateManager) {
@@ -114,6 +127,8 @@ class PlutoGridCellGestureEvent extends PlutoGridEvent {
   }
 
   void _selecting(PlutoGridStateManager stateManager) {
+    bool callOnSelected = stateManager.mode.isMultiSelectMode;
+
     if (stateManager.keyPressed.shift) {
       final int? columnIdx = stateManager.columnIndex(column);
 
@@ -125,15 +140,37 @@ class PlutoGridCellGestureEvent extends PlutoGridEvent {
       );
     } else if (stateManager.keyPressed.ctrl) {
       stateManager.toggleSelectingRow(rowIdx);
+    } else {
+      callOnSelected = false;
+    }
+
+    if (callOnSelected) {
+      stateManager.handleOnSelected();
     }
   }
 
   void _selectMode(PlutoGridStateManager stateManager) {
-    if (stateManager.isCurrentCell(cell)) {
-      stateManager.handleOnSelected();
-    } else {
-      stateManager.setCurrentCell(cell, rowIdx);
+    switch (stateManager.mode) {
+      case PlutoGridMode.normal:
+      case PlutoGridMode.readOnly:
+      case PlutoGridMode.popup:
+        return;
+      case PlutoGridMode.select:
+      case PlutoGridMode.selectWithOneTap:
+        if (stateManager.isCurrentCell(cell) == false) {
+          stateManager.setCurrentCell(cell, rowIdx);
+
+          if (!stateManager.mode.isSelectWithOneTap) {
+            return;
+          }
+        }
+        break;
+      case PlutoGridMode.multiSelect:
+        stateManager.toggleSelectingRow(rowIdx);
+        break;
     }
+
+    stateManager.handleOnSelected();
   }
 
   void _setCurrentCell(
@@ -153,10 +190,8 @@ enum PlutoGridGestureType {
   onLongPressMoveUpdate,
   onLongPressEnd,
   onDoubleTap,
-  onSecondaryTap,
-}
+  onSecondaryTap;
 
-extension PlutoGridGestureTypeExtension on PlutoGridGestureType? {
   bool get isOnTapUp => this == PlutoGridGestureType.onTapUp;
 
   bool get isOnLongPressStart => this == PlutoGridGestureType.onLongPressStart;

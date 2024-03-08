@@ -1,32 +1,43 @@
 import 'package:flutter/material.dart';
 import 'package:pluto_grid/pluto_grid.dart';
 
-import 'mixin_popup_cell.dart';
+import 'popup_cell.dart';
 
-class PlutoSelectCell extends StatefulWidget implements AbstractMixinPopupCell {
-  final PlutoGridStateManager? stateManager;
-  final PlutoCell? cell;
-  final PlutoColumn? column;
+class PlutoSelectCell extends StatefulWidget implements PopupCell {
+  @override
+  final PlutoGridStateManager stateManager;
 
-  PlutoSelectCell({
-    this.stateManager,
-    this.cell,
-    this.column,
+  @override
+  final PlutoCell cell;
+
+  @override
+  final PlutoColumn column;
+
+  @override
+  final PlutoRow row;
+
+  const PlutoSelectCell({
+    required this.stateManager,
+    required this.cell,
+    required this.column,
+    required this.row,
+    super.key,
   });
 
   @override
-  _PlutoSelectCellState createState() => _PlutoSelectCellState();
+  PlutoSelectCellState createState() => PlutoSelectCellState();
 }
 
-class _PlutoSelectCellState extends State<PlutoSelectCell>
-    with MixinPopupCell<PlutoSelectCell> {
-  List<PlutoColumn>? popupColumns;
+class PlutoSelectCellState extends State<PlutoSelectCell>
+    with PopupCellState<PlutoSelectCell> {
+  @override
+  List<PlutoColumn> popupColumns = [];
 
-  List<PlutoRow>? popupRows;
+  @override
+  List<PlutoRow> popupRows = [];
 
-  Icon? icon = const Icon(
-    Icons.arrow_drop_down,
-  );
+  @override
+  IconData? get icon => widget.column.type.select.popupIcon;
 
   late bool enableColumnFilter;
 
@@ -34,38 +45,40 @@ class _PlutoSelectCellState extends State<PlutoSelectCell>
   void initState() {
     super.initState();
 
-    enableColumnFilter = widget.column!.type.select!.enableColumnFilter == null
-        ? false
-        : widget.column!.type.select!.enableColumnFilter as bool;
+    enableColumnFilter = widget.column.type.select.enableColumnFilter;
 
-    int itemLength = (widget.column!.type.select!.items!.length + 1);
+    final columnFilterHeight = enableColumnFilter
+        ? widget.stateManager.configuration.style.columnFilterHeight
+        : 0;
 
-    if (enableColumnFilter) {
-      itemLength += 1;
-    }
+    final rowsHeight = widget.column.type.select.items.length *
+        widget.stateManager.rowTotalHeight;
 
-    popupHeight = (itemLength * widget.stateManager!.rowTotalHeight) +
-        PlutoGridSettings.shadowLineSize +
-        PlutoGridSettings.gridInnerSpacing;
+    popupHeight = widget.stateManager.configuration.style.columnHeight +
+        columnFilterHeight +
+        rowsHeight +
+        PlutoGridSettings.gridInnerSpacing +
+        PlutoGridSettings.gridBorderWidth;
 
-    fieldOnSelected = widget.column!.title;
+    fieldOnSelected = widget.column.title;
 
     popupColumns = [
       PlutoColumn(
-        title: widget.column!.title,
-        field: widget.column!.title,
-        type: PlutoColumnType.text(readOnly: true),
-        formatter: widget.column!.formatter,
+        title: widget.column.title,
+        field: widget.column.title,
+        readOnly: true,
+        type: PlutoColumnType.text(),
+        formatter: widget.column.formatter,
         enableFilterMenuItem: enableColumnFilter,
         enableHideColumnMenuItem: false,
         enableSetColumnsMenuItem: false,
       )
     ];
 
-    popupRows = widget.column!.type.select!.items!.map((dynamic item) {
+    popupRows = widget.column.type.select.items.map((dynamic item) {
       return PlutoRow(
         cells: {
-          widget.column!.title: PlutoCell(value: item),
+          widget.column.title: PlutoCell(value: item),
         },
       );
     }).toList();
@@ -73,12 +86,12 @@ class _PlutoSelectCellState extends State<PlutoSelectCell>
 
   @override
   void onLoaded(PlutoGridOnLoadedEvent event) {
+    super.onLoaded(event);
+
     if (enableColumnFilter) {
-      event.stateManager!.setShowColumnFilter(true, notify: false);
+      event.stateManager.setShowColumnFilter(true, notify: false);
     }
 
-    event.stateManager!.setSelectingMode(PlutoGridSelectingMode.none);
-
-    super.onLoaded(event);
+    event.stateManager.setSelectingMode(PlutoGridSelectingMode.none);
   }
 }

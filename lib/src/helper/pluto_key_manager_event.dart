@@ -3,18 +3,18 @@ import 'package:flutter/services.dart';
 
 class PlutoKeyManagerEvent {
   FocusNode focusNode;
-  RawKeyEvent event;
+  KeyEvent event;
 
   PlutoKeyManagerEvent({
     required this.focusNode,
     required this.event,
   });
-}
 
-extension PlutoKeyManagerEventExtention on PlutoKeyManagerEvent {
-  bool get isKeyDownEvent => event.runtimeType == RawKeyDownEvent;
+  bool get needsThrottle => isMoving || isTab || isPageUp || isPageDown;
 
-  bool get isKeyUpEvent => event.runtimeType == RawKeyUpEvent;
+  bool get isKeyDownEvent => event.runtimeType == KeyDownEvent;
+
+  bool get isKeyUpEvent => event.runtimeType == KeyUpEvent;
 
   bool get isMoving => isHorizontal || isVertical;
 
@@ -51,11 +51,17 @@ extension PlutoKeyManagerEventExtention on PlutoKeyManagerEvent {
 
   bool get isEsc => event.logicalKey.keyId == LogicalKeyboardKey.escape.keyId;
 
-  bool get isEnter => event.logicalKey.keyId == LogicalKeyboardKey.enter.keyId;
+  bool get isEnter =>
+      event.logicalKey.keyId == LogicalKeyboardKey.enter.keyId ||
+      event.logicalKey.keyId == LogicalKeyboardKey.numpadEnter.keyId;
 
   bool get isTab => event.logicalKey.keyId == LogicalKeyboardKey.tab.keyId;
 
   bool get isF2 => event.logicalKey.keyId == LogicalKeyboardKey.f2.keyId;
+
+  bool get isF3 => event.logicalKey.keyId == LogicalKeyboardKey.f3.keyId;
+
+  bool get isF4 => event.logicalKey.keyId == LogicalKeyboardKey.f4.keyId;
 
   bool get isBackspace =>
       event.logicalKey.keyId == LogicalKeyboardKey.backspace.keyId;
@@ -70,8 +76,7 @@ extension PlutoKeyManagerEventExtention on PlutoKeyManagerEvent {
       event.logicalKey.keyId == LogicalKeyboardKey.controlLeft.keyId ||
       event.logicalKey.keyId == LogicalKeyboardKey.controlRight.keyId;
 
-  bool get isCharacter =>
-      event.character != null && characters.contains(event.logicalKey.keyId);
+  bool get isCharacter => _characters.contains(event.logicalKey.keyId);
 
   bool get isCtrlC {
     return isCtrlPressed &&
@@ -89,15 +94,24 @@ extension PlutoKeyManagerEventExtention on PlutoKeyManagerEvent {
   }
 
   bool get isShiftPressed {
-    return event.isShiftPressed;
+    return HardwareKeyboard.instance.isShiftPressed;
   }
 
   bool get isCtrlPressed {
-    return event.isMetaPressed || event.isControlPressed;
+    return HardwareKeyboard.instance.isMetaPressed ||
+        HardwareKeyboard.instance.isControlPressed;
+  }
+
+  bool get isAltPressed {
+    return HardwareKeyboard.instance.isAltPressed;
+  }
+
+  bool get isModifierPressed {
+    return isShiftPressed || isCtrlPressed || isAltPressed;
   }
 }
 
-const characters = [
+const _characters = {
   0x0000000041, // keyA,
   0x0000000042, // keyB,
   0x0000000043, // keyC,
@@ -194,4 +208,4 @@ const characters = [
   0x0100070089, // intlYen,
   0x01000700b6, // numpadParenLeft,
   0x01000700b7, // numpadParenRight,
-];
+};

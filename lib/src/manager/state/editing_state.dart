@@ -7,8 +7,12 @@ abstract class IEditingState {
   /// Editing status of the current.
   bool get isEditing;
 
-  /// pre-modification cell value
-  dynamic get cellValueBeforeEditing;
+  /// Automatically set to editing state when cell is selected.
+  bool get autoEditing;
+
+  TextEditingController? get textEditingController;
+
+  bool isEditableCell(PlutoCell cell);
 
   /// Change the editing status of the current cell.
   void setEditing(
@@ -16,8 +20,15 @@ abstract class IEditingState {
     bool notify = true,
   });
 
+  void setAutoEditing(
+    bool flag, {
+    bool notify = true,
+  });
+
+  void setTextEditingController(TextEditingController? textEditingController);
+
   /// Toggle the editing status of the current cell.
-  void toggleEditing();
+  void toggleEditing({bool notify = true});
 
   /// Paste based on current cell
   void pasteCellValue(List<List<String>> textList);
@@ -28,7 +39,7 @@ abstract class IEditingState {
   /// Change cell value
   /// [callOnChangedEvent] triggers a [PlutoOnChangedEventCallback] callback.
   void changeCellValue(
-    Key cellKey,
+    PlutoCell cell,
     dynamic value, {
     bool callOnChangedEvent = true,
     bool force = false,
@@ -36,46 +47,102 @@ abstract class IEditingState {
   });
 }
 
-mixin EditingState implements IPlutoGridState {
-  bool get isEditing => _isEditing;
-
+class _State {
   bool _isEditing = false;
 
-  dynamic get cellValueBeforeEditing => _cellValueBeforeEditing;
+  bool _autoEditing = false;
 
-  dynamic _cellValueBeforeEditing;
+  TextEditingController? _textEditingController;
+}
 
+mixin EditingState implements IPlutoGridState {
+  final _State _state = _State();
+
+  @override
+  bool get isEditing => _state._isEditing;
+
+  @override
+  bool get autoEditing =>
+      _state._autoEditing || currentColumn?.enableAutoEditing == true;
+
+  @override
+  TextEditingController? get textEditingController =>
+      _state._textEditingController;
+
+  @override
+  bool isEditableCell(PlutoCell cell) {
+    if (cell.column.enableEditingMode != true) {
+      return false;
+    }
+
+    if (enabledRowGroups) {
+      return rowGroupDelegate?.isEditableCell(cell) == true;
+    }
+
+    return true;
+  }
+
+  @override
   void setEditing(
     bool flag, {
     bool notify = true,
   }) {
-    if (mode.isSelect) {
-      return;
-    }
-
-    if (currentColumn?.enableEditingMode != true) {
+    if (!mode.isEditableMode || (flag && currentCell == null)) {
       flag = false;
     }
 
-    if (currentCell == null || _isEditing == flag) {
+    if (isEditing == flag) return;
+
+    if (flag) {
+      assert(
+        currentCell?.column != null && currentCell?.row != null,
+        """
+      PlutoCell is not Initialized. 
+      PlutoColumn and PlutoRow must be initialized in PlutoCell via PlutoGridStateManager.
+      initializeRows method. When adding or deleting columns or rows, 
+      you must use methods on PlutoGridStateManager. Otherwise, 
+      the PlutoCell is not initialized and this error occurs.
+      """,
+      );
+
+      if (!isEditableCell(currentCell!)) {
+        flag = false;
+      }
+    }
+
+    _state._isEditing = flag;
+
+    clearCurrentSelecting(notify: false);
+
+    notifyListeners(notify, setEditing.hashCode);
+  }
+
+  @override
+  void setAutoEditing(
+    bool flag, {
+    bool notify = true,
+  }) {
+    if (autoEditing == flag) {
       return;
     }
 
-    if (flag == true) {
-      _cellValueBeforeEditing = currentCell!.value;
-    }
+    _state._autoEditing = flag;
 
-    _isEditing = flag;
-
-    clearCurrentSelectingPosition(notify: false);
-
-    if (notify) {
-      notifyListeners();
-    }
+    notifyListeners(notify, setAutoEditing.hashCode);
   }
 
-  void toggleEditing() => setEditing(!(_isEditing == true));
+  @override
+  void setTextEditingController(TextEditingController? textEditingController) {
+    _state._textEditingController = textEditingController;
+  }
 
+  @override
+  void toggleEditing({bool notify = true}) => setEditing(
+        !(isEditing == true),
+        notify: notify,
+      );
+
+  @override
   void pasteCellValue(List<List<String>> textList) {
     if (currentCellPosition == null) {
       return;
@@ -125,91 +192,83 @@ mixin EditingState implements IPlutoGridState {
       );
     }
 
-    notifyListeners();
+    notifyListeners(true, pasteCellValue.hashCode);
   }
 
+  @override
   dynamic castValueByColumnType(dynamic value, PlutoColumn column) {
-    if (column.type.isNumber && value.runtimeType != num) {
-      return num.tryParse(value.toString()) ?? 0;
+    if (column.type is PlutoColumnTypeWithNumberFormat) {
+      return (column.type as PlutoColumnTypeWithNumberFormat)
+          .toNumber(column.type.applyFormat(value));
     }
 
     return value;
   }
 
+  @override
   void changeCellValue(
-    Key cellKey,
+    PlutoCell cell,
     dynamic value, {
     bool callOnChangedEvent = true,
     bool force = false,
     bool notify = true,
   }) {
-    for (var rowIdx = 0; rowIdx < refRows!.length; rowIdx += 1) {
-      for (var columnIdx = 0;
-          columnIdx < columnIndexes.length;
-          columnIdx += 1) {
-        final field = refColumns![columnIndexes[columnIdx]].field;
+    final currentColumn = cell.column;
 
-        if (refRows![rowIdx]!.cells[field]!.key == cellKey) {
-          final currentColumn = refColumns![columnIndexes[columnIdx]];
+    final currentRow = cell.row;
 
-          final dynamic oldValue = refRows![rowIdx]!.cells[field]!.value;
+    final dynamic oldValue = cell.value;
 
-          value = filteredCellValue(
-            column: currentColumn,
-            newValue: value,
-            oldValue: oldValue,
-          );
+    value = filteredCellValue(
+      column: currentColumn,
+      newValue: value,
+      oldValue: oldValue,
+    );
 
-          if (force == false &&
-              canNotChangeCellValue(
-                column: currentColumn,
-                newValue: value,
-                oldValue: oldValue,
-              )) {
-            return;
-          }
+    value = castValueByColumnType(value, currentColumn);
 
-          refRows![rowIdx]!.setState(PlutoRowState.updated);
-
-          refRows![rowIdx]!.cells[field]!.value =
-              value = castValueByColumnType(value, currentColumn);
-
-          if (callOnChangedEvent == true && onChanged != null) {
-            onChanged!(PlutoGridOnChangedEvent(
-              columnIdx: columnIdx,
-              column: currentColumn,
-              rowIdx: rowIdx,
-              row: refRows![rowIdx],
-              value: value,
-              oldValue: oldValue,
-            ));
-          }
-
-          if (notify) {
-            notifyListeners();
-          }
-
-          return;
-        }
-      }
+    if (force == false &&
+        canNotChangeCellValue(
+          cell: cell,
+          newValue: value,
+          oldValue: oldValue,
+        )) {
+      return;
     }
+
+    currentRow.setState(PlutoRowState.updated);
+
+    cell.value = value;
+
+    if (callOnChangedEvent == true && onChanged != null) {
+      onChanged!(PlutoGridOnChangedEvent(
+        columnIdx: columnIndex(currentColumn)!,
+        column: currentColumn,
+        rowIdx: refRows.indexOf(currentRow),
+        row: currentRow,
+        value: value,
+        oldValue: oldValue,
+      ));
+    }
+
+    notifyListeners(notify, changeCellValue.hashCode);
   }
 
   void _pasteCellValueIntoSelectingRows({List<List<String>>? textList}) {
     int columnStartIdx = 0;
 
-    int columnEndIdx = refColumns!.length - 1;
+    int columnEndIdx = refColumns.length - 1;
 
-    final List<Key> selectingRowKeys =
-        currentSelectingRows.map((e) => e!.key).toList();
+    final Set<Key> selectingRowKeys =
+        Set.from(currentSelectingRows.map((e) => e.key));
 
     List<int> rowIdxList = [];
 
-    for (var i = 0; i < refRows!.length; i += 1) {
-      final currentRowKey = refRows![i]!.key;
+    for (int i = 0; i < refRows.length; i += 1) {
+      final currentRowKey = refRows[i].key;
 
       if (selectingRowKeys.contains(currentRowKey)) {
-        selectingRowKeys.removeWhere((key) => key == currentRowKey);
+        selectingRowKeys.remove(currentRowKey);
         rowIdxList.add(i);
       }
 
@@ -236,12 +295,12 @@ mixin EditingState implements IPlutoGridState {
 
     int textRowIdx = 0;
 
-    for (var i = 0; i < rowIdxList.length; i += 1) {
+    for (int i = 0; i < rowIdxList.length; i += 1) {
       final rowIdx = rowIdxList[i];
 
       int textColumnIdx = 0;
 
-      if (rowIdx > refRows!.length - 1) {
+      if (rowIdx > refRows.length - 1) {
         break;
       }
 
@@ -249,7 +308,7 @@ mixin EditingState implements IPlutoGridState {
         textRowIdx = 0;
       }
 
-      for (var columnIdx = columnStartIdx!;
+      for (int columnIdx = columnStartIdx!;
           columnIdx <= columnEndIdx!;
           columnIdx += 1) {
         if (columnIdx > columnIndexes.length - 1) {
@@ -260,13 +319,13 @@ mixin EditingState implements IPlutoGridState {
           textColumnIdx = 0;
         }
 
-        final currentColumn = refColumns![columnIndexes[columnIdx]];
+        final currentColumn = refColumns[columnIndexes[columnIdx]];
 
-        final currentRow = refRows![rowIdx]!.cells[currentColumn.field]!;
+        final currentCell = refRows[rowIdx].cells[currentColumn.field]!;
 
         dynamic newValue = textList[textRowIdx][textColumnIdx];
 
-        final dynamic oldValue = currentRow.value;
+        final dynamic oldValue = currentCell.value;
 
         newValue = filteredCellValue(
           column: currentColumn,
@@ -274,8 +333,10 @@ mixin EditingState implements IPlutoGridState {
           oldValue: oldValue,
         );
 
+        newValue = castValueByColumnType(newValue, currentColumn);
+
         if (canNotChangeCellValue(
-          column: currentColumn,
+          cell: currentCell,
           newValue: newValue,
           oldValue: oldValue,
         )) {
@@ -283,17 +344,16 @@ mixin EditingState implements IPlutoGridState {
           continue;
         }
 
-        refRows![rowIdx]!.setState(PlutoRowState.updated);
+        refRows[rowIdx].setState(PlutoRowState.updated);
 
-        currentRow.value =
-            newValue = castValueByColumnType(newValue, currentColumn);
+        currentCell.value = newValue;
 
         if (onChanged != null) {
           onChanged!(PlutoGridOnChangedEvent(
             columnIdx: columnIndexes[columnIdx],
             column: currentColumn,
             rowIdx: rowIdx,
-            row: refRows![rowIdx],
+            row: refRows[rowIdx],
             value: newValue,
             oldValue: oldValue,
           ));

@@ -1,315 +1,476 @@
 import 'package:flutter/material.dart';
 import 'package:pluto_grid/pluto_grid.dart';
 
-class PlutoDefaultCell extends PlutoStatefulWidget {
-  final PlutoGridStateManager stateManager;
-  final PlutoCell? cell;
-  final PlutoColumn? column;
-  final int? rowIdx;
+import '../ui.dart';
 
-  PlutoDefaultCell({
+typedef DragUpdatedCallback = Function(Offset offset);
+
+class PlutoDefaultCell extends PlutoStatefulWidget {
+  final PlutoCell cell;
+
+  final PlutoColumn column;
+
+  final int rowIdx;
+
+  final PlutoRow row;
+
+  final PlutoGridStateManager stateManager;
+
+  const PlutoDefaultCell({
+    required this.cell,
+    required this.column,
+    required this.rowIdx,
+    required this.row,
     required this.stateManager,
-    this.cell,
-    this.column,
-    this.rowIdx,
+    super.key,
   });
 
   @override
-  _PlutoDefaultCellState createState() => _PlutoDefaultCellState();
+  State<PlutoDefaultCell> createState() => _PlutoDefaultCellState();
 }
 
-abstract class _PlutoDefaultCellStateWithChange
-    extends PlutoStateWithChange<PlutoDefaultCell> {
-  bool? canRowDrag;
+class _PlutoDefaultCellState extends PlutoStateWithChange<PlutoDefaultCell> {
+  bool _hasFocus = false;
+
+  bool _canRowDrag = false;
+
+  bool _isCurrentCell = false;
+
+  String _text = '';
 
   @override
-  void onChange() {
-    resetState((update) {
-      canRowDrag = update<bool?>(
-        canRowDrag,
-        widget.stateManager.canRowDrag,
-      );
-    });
-  }
-}
+  PlutoGridStateManager get stateManager => widget.stateManager;
 
-class _PlutoDefaultCellState extends _PlutoDefaultCellStateWithChange {
-  PlutoRow? get thisRow => widget.stateManager.getRowByIdx(widget.rowIdx);
-
-  bool get isCurrentRowSelected {
-    return widget.stateManager.isSelectedRow(thisRow?.key);
-  }
-
-  void addDragEventOfRow({
-    PlutoGridDragType? type,
-    Offset? offset,
-  }) {
-    if (offset != null) {
-      offset += Offset(0.0, (widget.stateManager.rowTotalHeight / 2));
+  bool get _canExpand {
+    if (!widget.row.type.isGroup || !stateManager.enabledRowGroups) {
+      return false;
     }
 
-    widget.stateManager.eventManager!.addEvent(
-      PlutoGridDragRowsEvent(
-        offset: offset,
-        dragType: type,
-        rows: isCurrentRowSelected
-            ? widget.stateManager.currentSelectingRows
-            : [thisRow],
-      ),
+    return _isExpandableCell;
+  }
+
+  bool get _isExpandableCell =>
+      stateManager.rowGroupDelegate!.isExpandableCell(widget.cell);
+
+  bool get _showSpacing {
+    if (!stateManager.enabledRowGroups ||
+        !stateManager.rowGroupDelegate!.showFirstExpandableIcon) {
+      return false;
+    }
+
+    if (_canExpand) return true;
+
+    final parentCell = widget.row.parent?.cells[widget.column.field];
+
+    return parentCell != null &&
+        stateManager.rowGroupDelegate!.isExpandableCell(parentCell);
+  }
+
+  bool get _isEmptyGroup => widget.row.type.group.children.isEmpty;
+
+  bool get _showGroupCount =>
+      stateManager.enabledRowGroups &&
+      _isExpandableCell &&
+      widget.row.type.isGroup &&
+      stateManager.rowGroupDelegate!.showCount;
+
+  String get _groupCount => _compactCount
+      ? stateManager.rowGroupDelegate!
+          .compactNumber(widget.row.type.group.children.length)
+      : widget.row.type.group.children.length.toString();
+
+  bool get _compactCount => stateManager.rowGroupDelegate!.enableCompactCount;
+
+  @override
+  void initState() {
+    super.initState();
+
+    updateState(PlutoNotifierEventForceUpdate.instance);
+  }
+
+  @override
+  void updateState(PlutoNotifierEvent event) {
+    _hasFocus = update<bool>(
+      _hasFocus,
+      stateManager.hasFocus,
+    );
+
+    _canRowDrag = update<bool>(
+      _canRowDrag,
+      widget.column.enableRowDrag && stateManager.canRowDrag,
+    );
+
+    _isCurrentCell = update<bool>(
+      _isCurrentCell,
+      stateManager.isCurrentCell(widget.cell),
+    );
+
+    _text = update<String>(
+      _text,
+      widget.column.formattedValueForDisplay(widget.cell.value),
     );
   }
 
-  void _handleOnDragStarted() {
-    addDragEventOfRow(type: PlutoGridDragType.start);
-  }
-
-  void _handleOnDragUpdated(Offset offset) {
-    addDragEventOfRow(
-      type: PlutoGridDragType.update,
-      offset: offset,
-    );
-
-    widget.stateManager.eventManager!.addEvent(PlutoGridMoveUpdateEvent(
-      offset: offset,
-    ));
-  }
-
-  void _handleOnDragEnd(DraggableDetails dragDetails) {
-    addDragEventOfRow(
-      type: PlutoGridDragType.end,
-      offset: dragDetails.offset,
+  void _handleToggleExpandedRowGroup() {
+    stateManager.toggleExpandedRowGroup(
+      rowGroup: widget.row,
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final cellWidget = _BuildDefaultCellWidget(
-      stateManager: widget.stateManager,
+    final cellWidget = _DefaultCellWidget(
+      stateManager: stateManager,
       rowIdx: widget.rowIdx,
-      row: thisRow,
+      row: widget.row,
       column: widget.column,
       cell: widget.cell,
     );
 
-    return Row(
-      children: [
-        // todo : When onDragUpdated is added to the Draggable, remove the listener.
-        // https://github.com/flutter/flutter/pull/68185
-        if (widget.column!.enableRowDrag && canRowDrag!)
-          _RowDragIconWidget(
-            column: widget.column,
-            stateManager: widget.stateManager,
-            onDragStarted: _handleOnDragStarted,
-            onDragUpdated: _handleOnDragUpdated,
-            onDragEnd: _handleOnDragEnd,
-            feedbackWidget: cellWidget,
-            dragIcon: Icon(
-              Icons.drag_indicator,
-              size: widget.stateManager.configuration!.iconSize,
-              color: widget.stateManager.configuration!.iconColor,
-            ),
-          ),
-        if (widget.column!.enableRowChecked)
-          _CheckboxSelectionWidget(
-            column: widget.column,
-            row: thisRow,
-            stateManager: widget.stateManager,
-          ),
-        Expanded(
-          child: cellWidget,
-        ),
-      ],
-    );
-  }
-}
+    final style = stateManager.configuration.style;
 
-typedef DragUpdatedCallback = Function(Offset offset);
-
-class _RowDragIconWidget extends StatefulWidget {
-  final PlutoColumn? column;
-  final PlutoGridStateManager? stateManager;
-  final VoidCallback? onDragStarted;
-  final DragUpdatedCallback? onDragUpdated;
-  final DragEndCallback? onDragEnd;
-  final Widget? dragIcon;
-  final Widget? feedbackWidget;
-
-  const _RowDragIconWidget({
-    Key? key,
-    this.column,
-    this.stateManager,
-    this.onDragStarted,
-    this.onDragUpdated,
-    this.onDragEnd,
-    this.dragIcon,
-    this.feedbackWidget,
-  }) : super(key: key);
-
-  @override
-  __RowDragIconWidgetState createState() => __RowDragIconWidgetState();
-}
-
-class __RowDragIconWidgetState extends State<_RowDragIconWidget> {
-  final GlobalKey _feedbackKey = GlobalKey();
-
-  bool _isDragging = false;
-
-  Offset? get _offsetFeedback {
-    if (_feedbackKey.currentContext == null) {
-      return null;
+    Widget? spacingWidget;
+    if (_showSpacing) {
+      if (widget.row.depth > 0) {
+        double gap = style.iconSize * 1.5;
+        double spacing = widget.row.depth * gap;
+        if (!widget.row.type.isGroup) spacing += gap;
+        spacingWidget = SizedBox(width: spacing);
+      }
     }
 
-    final RenderBox renderBoxRed =
-        _feedbackKey.currentContext!.findRenderObject() as RenderBox;
+    Widget? expandIcon;
+    if (_canExpand) {
+      expandIcon = IconButton(
+        onPressed: _isEmptyGroup ? null : _handleToggleExpandedRowGroup,
+        icon: _isEmptyGroup
+            ? Icon(
+                style.rowGroupEmptyIcon,
+                size: style.iconSize / 2,
+                color: style.iconColor,
+              )
+            : widget.row.type.group.expanded
+                ? Icon(
+                    style.rowGroupExpandedIcon,
+                    size: style.iconSize,
+                    color: style.iconColor,
+                  )
+                : Icon(
+                    style.rowGroupCollapsedIcon,
+                    size: style.iconSize,
+                    color: style.iconColor,
+                  ),
+      );
+    }
 
-    return renderBoxRed.localToGlobal(Offset.zero);
+    return Row(children: [
+      if (_canRowDrag)
+        _RowDragIconWidget(
+          column: widget.column,
+          row: widget.row,
+          rowIdx: widget.rowIdx,
+          stateManager: stateManager,
+          feedbackWidget: cellWidget,
+          dragIcon: Icon(
+            Icons.drag_indicator,
+            size: style.iconSize,
+            color: style.iconColor,
+          ),
+        ),
+      if (widget.column.enableRowChecked)
+        CheckboxSelectionWidget(
+          column: widget.column,
+          row: widget.row,
+          rowIdx: widget.rowIdx,
+          stateManager: stateManager,
+        ),
+      if (spacingWidget != null) spacingWidget,
+      if (expandIcon != null) expandIcon,
+      Expanded(child: cellWidget),
+      if (_showGroupCount)
+        Text(
+          '($_groupCount)',
+          style: stateManager.configuration.style.cellTextStyle.copyWith(
+            decoration: TextDecoration.none,
+            fontWeight: FontWeight.normal,
+          ),
+        ),
+    ]);
+  }
+}
+
+class _RowDragIconWidget extends StatelessWidget {
+  final PlutoColumn column;
+
+  final PlutoRow row;
+
+  final int rowIdx;
+
+  final PlutoGridStateManager stateManager;
+
+  final Widget dragIcon;
+
+  final Widget feedbackWidget;
+
+  const _RowDragIconWidget({
+    required this.column,
+    required this.row,
+    required this.rowIdx,
+    required this.stateManager,
+    required this.dragIcon,
+    required this.feedbackWidget,
+  });
+
+  List<PlutoRow> get _draggingRows {
+    if (stateManager.currentSelectingRows.isEmpty) {
+      return [row];
+    }
+
+    if (stateManager.isSelectedRow(row.key)) {
+      return stateManager.currentSelectingRows;
+    }
+
+    // In case there are selected rows,
+    // if the dragging row is not included in it,
+    // the selection of rows is invalidated.
+    stateManager.clearCurrentSelecting(notify: false);
+
+    return [row];
   }
 
-  void _onPointerMove(PointerMoveEvent _) {
-    if (_isDragging == false) {
+  void _handleOnPointerDown(PointerDownEvent event) {
+    stateManager.setIsDraggingRow(true, notify: false);
+
+    stateManager.setDragRows(_draggingRows);
+  }
+
+  void _handleOnPointerMove(PointerMoveEvent event) {
+    // Do not drag while rows are selected.
+    if (stateManager.isSelecting) {
+      stateManager.setIsDraggingRow(false);
+
       return;
     }
 
-    widget.onDragUpdated!(_offsetFeedback ?? _.position);
+    stateManager.eventManager!.addEvent(PlutoGridScrollUpdateEvent(
+      offset: event.position,
+    ));
+
+    int? targetRowIdx = stateManager.getRowIdxByOffset(
+      event.position.dy,
+    );
+
+    stateManager.setDragTargetRowIdx(targetRowIdx);
   }
 
-  void _onDragStarted() {
-    _isDragging = true;
-    widget.onDragStarted!();
-  }
+  void _handleOnPointerUp(PointerUpEvent event) {
+    stateManager.setIsDraggingRow(false);
 
-  void _onDragEnd(DraggableDetails _) {
-    _isDragging = false;
-    widget.onDragEnd!(_);
+    PlutoGridScrollUpdateEvent.stopScroll(
+      stateManager,
+      PlutoGridScrollUpdateDirection.all,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+    final translationX = stateManager.isRTL ? -0.92 : -0.08;
+
     return Listener(
-      onPointerMove: _onPointerMove,
-      child: Draggable(
-        onDragStarted: _onDragStarted,
-        onDragEnd: _onDragEnd,
-        feedback: Material(
-          key: _feedbackKey,
-          child: PlutoShadowContainer(
-            width: widget.column!.width,
-            height: widget.stateManager!.rowHeight,
-            backgroundColor:
-                widget.stateManager!.configuration!.gridBackgroundColor,
-            borderColor:
-                widget.stateManager!.configuration!.activatedBorderColor,
-            child: Row(
-              children: [
-                widget.dragIcon!,
-                Expanded(
-                  child: widget.feedbackWidget!,
-                ),
-              ],
+      onPointerDown: _handleOnPointerDown,
+      onPointerMove: _handleOnPointerMove,
+      onPointerUp: _handleOnPointerUp,
+      child: Draggable<PlutoRow>(
+        data: row,
+        dragAnchorStrategy: pointerDragAnchorStrategy,
+        feedback: FractionalTranslation(
+          translation: Offset(translationX, -0.5),
+          child: Material(
+            child: PlutoShadowContainer(
+              width: column.width,
+              height: stateManager.rowHeight,
+              backgroundColor:
+                  stateManager.configuration.style.gridBackgroundColor,
+              borderColor:
+                  stateManager.configuration.style.activatedBorderColor,
+              child: Row(
+                children: [
+                  dragIcon,
+                  Expanded(
+                    child: feedbackWidget,
+                  ),
+                ],
+              ),
             ),
           ),
         ),
-        child: widget.dragIcon!,
+        child: dragIcon,
       ),
     );
   }
 }
 
-class _CheckboxSelectionWidget extends PlutoStatefulWidget {
-  final PlutoColumn? column;
-  final PlutoRow? row;
+class CheckboxSelectionWidget extends PlutoStatefulWidget {
   final PlutoGridStateManager stateManager;
 
-  _CheckboxSelectionWidget({
-    this.column,
-    this.row,
+  final PlutoColumn column;
+
+  final PlutoRow row;
+
+  final int rowIdx;
+
+  const CheckboxSelectionWidget({
     required this.stateManager,
+    required this.column,
+    required this.row,
+    required this.rowIdx,
+    super.key,
   });
 
   @override
-  __CheckboxSelectionWidgetState createState() =>
-      __CheckboxSelectionWidgetState();
+  CheckboxSelectionWidgetState createState() => CheckboxSelectionWidgetState();
 }
 
-abstract class __CheckboxSelectionWidgetStateWithChange
-    extends PlutoStateWithChange<_CheckboxSelectionWidget> {
-  bool? checked;
+class CheckboxSelectionWidgetState
+    extends PlutoStateWithChange<CheckboxSelectionWidget> {
+  bool _tristate = false;
+
+  bool? _checked;
 
   @override
-  void onChange() {
-    resetState((update) {
-      checked = update<bool?>(checked, widget.row!.checked);
-    });
-  }
-}
+  PlutoGridStateManager get stateManager => widget.stateManager;
 
-class __CheckboxSelectionWidgetState
-    extends __CheckboxSelectionWidgetStateWithChange {
+  @override
+  void initState() {
+    super.initState();
+
+    updateState(PlutoNotifierEventForceUpdate.instance);
+  }
+
+  @override
+  void updateState(PlutoNotifierEvent event) {
+    _tristate = update<bool>(
+      _tristate,
+      stateManager.enabledRowGroups && widget.row.type.isGroup,
+    );
+
+    _checked = update<bool?>(
+      _checked,
+      _tristate ? widget.row.checked : widget.row.checked == true,
+    );
+  }
+
   void _handleOnChanged(bool? changed) {
-    if (changed == checked) {
+    if (changed == _checked) {
       return;
     }
 
-    widget.stateManager.setRowChecked(widget.row, changed);
+    if (_tristate) {
+      changed ??= false;
 
-    if (widget.stateManager.onRowChecked != null) {
-      widget.stateManager.onRowChecked!(
-        PlutoGridOnRowCheckedOneEvent(row: widget.row, isChecked: changed),
+      if (_checked == null) changed = true;
+    } else {
+      changed = changed == true;
+    }
+
+    stateManager.setRowChecked(widget.row, changed);
+
+    if (stateManager.onRowChecked != null) {
+      stateManager.onRowChecked!(
+        PlutoGridOnRowCheckedOneEvent(
+          row: widget.row,
+          rowIdx: widget.rowIdx,
+          isChecked: changed,
+        ),
       );
     }
 
     setState(() {
-      checked = changed;
+      _checked = changed;
     });
   }
 
   @override
   Widget build(BuildContext context) {
     return PlutoScaledCheckbox(
-      value: checked,
+      value: _checked,
       handleOnChanged: _handleOnChanged,
+      tristate: _tristate,
       scale: 0.86,
-      unselectedColor: widget.stateManager.configuration!.iconColor,
-      activeColor: widget.stateManager.configuration!.activatedBorderColor,
-      checkColor: widget.stateManager.configuration!.activatedColor,
+      unselectedColor: stateManager.configuration.style.iconColor,
+      activeColor: stateManager.configuration.style.activatedBorderColor,
+      checkColor: stateManager.configuration.style.activatedColor,
     );
   }
 }
 
-class _BuildDefaultCellWidget extends StatelessWidget {
-  final PlutoGridStateManager? stateManager;
-  final int? rowIdx;
-  final PlutoRow? row;
-  final PlutoColumn? column;
-  final PlutoCell? cell;
+class _DefaultCellWidget extends StatelessWidget {
+  final PlutoGridStateManager stateManager;
 
-  const _BuildDefaultCellWidget({
-    Key? key,
-    this.stateManager,
-    this.rowIdx,
-    this.row,
-    this.column,
-    this.cell,
-  }) : super(key: key);
+  final int rowIdx;
+
+  final PlutoRow row;
+
+  final PlutoColumn column;
+
+  final PlutoCell cell;
+
+  const _DefaultCellWidget({
+    required this.stateManager,
+    required this.rowIdx,
+    required this.row,
+    required this.column,
+    required this.cell,
+  });
+
+  bool get _showText {
+    if (!stateManager.enabledRowGroups) {
+      return true;
+    }
+
+    return stateManager.rowGroupDelegate!.isExpandableCell(cell) ||
+        stateManager.rowGroupDelegate!.isEditableCell(cell);
+  }
+
+  String get _text {
+    if (!_showText) return '';
+
+    dynamic cellValue = cell.value;
+
+    if (stateManager.enabledRowGroups &&
+        stateManager.rowGroupDelegate!.showFirstExpandableIcon &&
+        stateManager.rowGroupDelegate!.type.isByColumn) {
+      final delegate =
+          stateManager.rowGroupDelegate as PlutoRowGroupByColumnDelegate;
+
+      if (row.depth < delegate.columns.length) {
+        cellValue = row.cells[delegate.columns[row.depth].field]!.value;
+      }
+    }
+
+    return column.formattedValueForDisplay(cellValue);
+  }
 
   @override
   Widget build(BuildContext context) {
-    return column!.hasRenderer
-        ? column!.renderer!(PlutoColumnRendererContext(
-            column: column,
-            rowIdx: rowIdx,
-            row: row,
-            cell: cell,
-            stateManager: stateManager,
-          ))
-        : Text(
-            column!.formattedValueForDisplay(cell!.value),
-            style: stateManager!.configuration!.cellTextStyle.copyWith(
-              decoration: TextDecoration.none,
-              fontWeight: FontWeight.normal,
-            ),
-            overflow: TextOverflow.ellipsis,
-            textAlign: column!.textAlign.value,
-          );
+    if (column.hasRenderer) {
+      return column.renderer!(PlutoColumnRendererContext(
+        column: column,
+        rowIdx: rowIdx,
+        row: row,
+        cell: cell,
+        stateManager: stateManager,
+      ));
+    }
+
+    return Text(
+      _text,
+      style: stateManager.configuration.style.cellTextStyle.copyWith(
+        decoration: TextDecoration.none,
+        fontWeight: FontWeight.normal,
+      ),
+      overflow: TextOverflow.ellipsis,
+      textAlign: column.textAlign.value,
+    );
   }
 }

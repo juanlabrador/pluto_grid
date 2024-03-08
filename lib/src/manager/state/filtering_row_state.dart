@@ -1,21 +1,26 @@
 import 'package:flutter/material.dart';
 import 'package:pluto_grid/pluto_grid.dart';
-import 'package:pluto_grid/src/helper/filter_helper.dart';
 
 abstract class IFilteringRowState {
-  List<PlutoRow?> get filterRows;
+  List<PlutoRow> get filterRows;
 
   bool get hasFilter;
 
-  void setFilter(FilteredListFilter<PlutoRow?>? filter, {bool notify = true});
+  void setFilter(FilteredListFilter<PlutoRow>? filter, {bool notify = true});
 
-  void setFilterWithFilterRows(List<PlutoRow?> rows, {bool notify = true});
+  void setFilterWithFilterRows(List<PlutoRow> rows, {bool notify = true});
 
   void setFilterRows(List<PlutoRow> rows);
 
-  List<PlutoRow?> filterRowsByField(String columnField);
+  List<PlutoRow> filterRowsByField(String columnField);
 
+  /// Check if the column is in a state with filtering applied.
   bool isFilteredColumn(PlutoColumn column);
+
+  void removeColumnsInFilterRows(
+    List<PlutoColumn> columns, {
+    bool notify = true,
+  });
 
   void showFilterPopup(
     BuildContext context, {
@@ -23,99 +28,153 @@ abstract class IFilteringRowState {
   });
 }
 
+class _State {
+  List<PlutoRow> _filterRows = [];
+}
+
 mixin FilteringRowState implements IPlutoGridState {
-  List<PlutoRow?> get filterRows => _filterRows;
+  final _State _state = _State();
 
-  List<PlutoRow?> _filterRows = [];
+  @override
+  List<PlutoRow> get filterRows => _state._filterRows;
 
-  bool get hasFilter => refRows!.hasFilter;
+  @override
+  bool get hasFilter =>
+      refRows.hasFilter || (filterOnlyEvent && filterRows.isNotEmpty);
 
-  void setFilter(FilteredListFilter<PlutoRow?>? filter, {bool notify = true}) {
-    for (var row in refRows!.originalList) {
-      row!.setState(PlutoRowState.none);
-    }
-
-    var _filter = filter;
-
+  @override
+  void setFilter(FilteredListFilter<PlutoRow>? filter, {bool notify = true}) {
     if (filter == null) {
       setFilterRows([]);
-    } else {
-      _filter = (PlutoRow? row) {
-        return !row!.state.isNone || filter(row);
+    }
+
+    if (filterOnlyEvent) {
+      eventManager!.addEvent(
+        PlutoGridSetColumnFilterEvent(filterRows: filterRows),
+      );
+      return;
+    }
+
+    for (final row in iterateAllRowAndGroup) {
+      row.setState(PlutoRowState.none);
+    }
+
+    var savedFilter = filter;
+
+    if (filter != null) {
+      savedFilter = (PlutoRow row) {
+        return !row.state.isNone || filter(row);
       };
     }
 
-    refRows!.setFilter(_filter);
+    if (enabledRowGroups) {
+      setRowGroupFilter(savedFilter);
+    } else {
+      refRows.setFilter(savedFilter);
+    }
 
     resetCurrentState(notify: false);
 
-    if (notify) {
-      notifyListeners();
-    }
+    notifyListeners(notify, setFilter.hashCode);
   }
 
-  void setFilterWithFilterRows(List<PlutoRow?> rows, {bool notify = true}) {
+  @override
+  void setFilterWithFilterRows(List<PlutoRow> rows, {bool notify = true}) {
     setFilterRows(rows);
 
     var enabledFilterColumnFields =
-        refColumns!.where((element) => element.enableFilterMenuItem).toList();
+        refColumns.where((element) => element.enableFilterMenuItem).toList();
 
     setFilter(
-      FilterHelper.convertRowsToFilter(_filterRows, enabledFilterColumnFields),
+      FilterHelper.convertRowsToFilter(filterRows, enabledFilterColumnFields),
       notify: isPaginated ? false : notify,
     );
 
     if (isPaginated) {
-      resetPage();
+      resetPage(notify: notify);
     }
   }
 
-  void setFilterRows(List<PlutoRow?> rows) {
-    _filterRows = rows
+  @override
+  void setFilterRows(List<PlutoRow> rows) {
+    _state._filterRows = rows
         .where(
-          (element) => element!.cells[FilterHelper.filterFieldValue]!.value
+          (element) => element.cells[FilterHelper.filterFieldValue]!.value
               .toString()
               .isNotEmpty,
         )
         .toList();
   }
 
-  List<PlutoRow?> filterRowsByField(String columnField) {
-    return _filterRows
+  @override
+  List<PlutoRow> filterRowsByField(String columnField) {
+    return filterRows
         .where(
           (element) =>
-              element!.cells[FilterHelper.filterFieldColumn]!.value ==
+              element.cells[FilterHelper.filterFieldColumn]!.value ==
               columnField,
         )
         .toList();
   }
 
-  bool isFilteredColumn(PlutoColumn? column) {
-    return hasFilter &&
-        _filterRows.isNotEmpty &&
-        FilterHelper.isFilteredColumn(column!, _filterRows);
+  @override
+  bool isFilteredColumn(PlutoColumn column) {
+    return hasFilter && FilterHelper.isFilteredColumn(column, filterRows);
   }
 
+  @override
+  void removeColumnsInFilterRows(
+    List<PlutoColumn> columns, {
+    bool notify = true,
+  }) {
+    if (filterRows.isEmpty) {
+      return;
+    }
+
+    final Set<String> columnFields = Set.from(columns.map((e) => e.field));
+
+    filterRows.removeWhere(
+      (filterRow) {
+        return columnFields.contains(
+          filterRow.cells[FilterHelper.filterFieldColumn]!.value,
+        );
+      },
+    );
+
+    setFilterWithFilterRows(filterRows, notify: notify);
+  }
+
+  @override
   void showFilterPopup(
     BuildContext context, {
     PlutoColumn? calledColumn,
+    void Function()? onClosed,
   }) {
     var shouldProvideDefaultFilterRow =
-        _filterRows.isEmpty && calledColumn != null;
+        filterRows.isEmpty && calledColumn != null;
 
     var rows = shouldProvideDefaultFilterRow
         ? [
             FilterHelper.createFilterRow(
-              columnField: calledColumn!.field,
+              columnField: calledColumn.enableFilterMenuItem
+                  ? calledColumn.field
+                  : FilterHelper.filterFieldAllColumns,
               filterType: calledColumn.defaultFilter,
             ),
           ]
-        : _filterRows;
+        : filterRows;
 
     FilterHelper.filterPopup(
       FilterPopupState(
         context: context,
-        configuration: configuration!,
+        configuration: configuration.copyWith(
+          style: configuration.style.copyWith(
+            gridBorderRadius: configuration.style.gridPopupBorderRadius,
+            enableRowColorAnimation: false,
+            oddRowColor: const PlutoOptional(null),
+            evenRowColor: const PlutoOptional(null),
+          ),
+        ),
         handleAddNewFilter: (filterState) {
           filterState!.appendRows([FilterHelper.createFilterRow()]);
         },
@@ -125,6 +184,7 @@ mixin FilteringRowState implements IPlutoGridState {
         columns: columns,
         filterRows: rows,
         focusFirstFilterValue: shouldProvideDefaultFilterRow,
+        onClosed: onClosed,
       ),
     );
   }

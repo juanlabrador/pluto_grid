@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pluto_grid/pluto_grid.dart';
+import 'package:pluto_grid/src/ui/ui.dart';
 
 import '../../helper/column_helper.dart';
 import '../../helper/pluto_widget_test_helper.dart';
@@ -9,16 +10,11 @@ import '../../helper/row_helper.dart';
 
 /// 행 높이 설정 후 동작 테스트
 void main() {
-  final PlutoGridSelectingMode selectingMode = PlutoGridSelectingMode.row;
+  const PlutoGridSelectingMode selectingMode = PlutoGridSelectingMode.row;
 
   PlutoGridStateManager? stateManager;
 
-  final PlutoWidgetTestHelper Function(
-      {int columnIdx,
-      List<PlutoColumn> columns,
-      int numberOfRows,
-      double rowHeight,
-      int rowIdx}) buildRowsWithSettingRowHeight = ({
+  buildRowsWithSettingRowHeight({
     int numberOfRows = 10,
     List<PlutoColumn>? columns,
     int columnIdx = 0,
@@ -26,8 +22,9 @@ void main() {
     double rowHeight = 45.0,
   }) {
     // given
-    final _columns = columns ?? ColumnHelper.textColumn('header', count: 10);
-    final rows = RowHelper.count(numberOfRows, _columns);
+    final safetyColumns =
+        columns ?? ColumnHelper.textColumn('header', count: 10);
+    final rows = RowHelper.count(numberOfRows, safetyColumns);
 
     return PlutoWidgetTestHelper(
       'build with setting row height.',
@@ -35,20 +32,20 @@ void main() {
         await tester.pumpWidget(
           MaterialApp(
             home: Material(
-              child: Container(
-                child: PlutoGrid(
-                  columns: _columns,
-                  rows: rows,
-                  onLoaded: (PlutoGridOnLoadedEvent event) {
-                    stateManager = event.stateManager;
-                    stateManager!.setSelectingMode(selectingMode);
+              child: PlutoGrid(
+                columns: safetyColumns,
+                rows: rows,
+                onLoaded: (PlutoGridOnLoadedEvent event) {
+                  stateManager = event.stateManager;
+                  stateManager!.setSelectingMode(selectingMode);
 
-                    stateManager!.setCurrentCell(
-                      stateManager!.rows[rowIdx]!.cells['header$columnIdx'],
-                      rowIdx,
-                    );
-                  },
-                  configuration: PlutoGridConfiguration(
+                  stateManager!.setCurrentCell(
+                    stateManager!.rows[rowIdx].cells['header$columnIdx'],
+                    rowIdx,
+                  );
+                },
+                configuration: PlutoGridConfiguration(
+                  style: PlutoGridStyleConfig(
                     rowHeight: rowHeight,
                   ),
                 ),
@@ -62,7 +59,7 @@ void main() {
         expect(stateManager!.currentCellPosition!.rowIdx, rowIdx);
       },
     );
-  };
+  }
 
   group('state', () {
     const rowHeight = 90.0;
@@ -85,9 +82,9 @@ void main() {
     buildRowsWithSettingRowHeight(rowHeight: rowHeight).test(
       'CellWidget 의 높이가 설정 한 높이 값을 가져야 한다.',
       (tester) async {
-        final cellWidget =
-            find.byType(PlutoBaseCell).evaluate().first.widget as PlutoBaseCell;
-        expect(cellWidget.height, rowHeight);
+        final Size cellSize = tester.getSize(find.byType(PlutoBaseCell).first);
+
+        expect(cellSize.height, rowHeight);
       },
     );
 
@@ -114,14 +111,13 @@ void main() {
         await tester.pumpAndSettle(const Duration(milliseconds: 300));
 
         final popupGrid = find.byType(PlutoGrid).last;
-        final cellOfSelectPopup = find
+
+        final Size cellPopupSize = tester.getSize(find
             .descendant(of: popupGrid, matching: find.byType(PlutoBaseCell))
-            .evaluate()
-            .first
-            .widget as PlutoBaseCell;
+            .first);
 
         // select 팝업 높이 확인
-        expect(cellOfSelectPopup.height, rowHeight);
+        expect(cellPopupSize.height, rowHeight);
       },
     );
 
@@ -129,8 +125,8 @@ void main() {
       rowHeight: rowHeight,
       columns: ColumnHelper.dateColumn('header', count: 10),
     ).test(
-      'CellWidget 의 높이를 설정해도 dateColumn 의 팝업의 셀 높이는 '
-      'PlutoDefaultSettings.rowHeight 값으로 설정 되어야 한다.',
+      'CellWidget 의 높이를 설정하면 dateColumn 의 팝업의 셀 높이는 '
+      '설정한 값으로 설정 되어야 한다.',
       (tester) async {
         // Editing 상태로 설정
         await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
@@ -143,7 +139,7 @@ void main() {
         await tester.pumpAndSettle(const Duration(milliseconds: 300));
 
         final sundayColumn =
-            find.text(stateManager!.configuration!.localeText.sunday);
+            find.text(stateManager!.configuration.localeText.sunday);
 
         expect(
           sundayColumn,
@@ -153,12 +149,12 @@ void main() {
         // date 팝업의 CellWidget 높이 확인
         final parent =
             find.ancestor(of: sundayColumn, matching: find.byType(PlutoGrid));
-        final cellWidget = find
+
+        final Size cellSize = tester.getSize(find
             .descendant(of: parent, matching: find.byType(PlutoBaseCell))
-            .evaluate()
-            .first
-            .widget as PlutoBaseCell;
-        expect(cellWidget.height, PlutoGridSettings.rowHeight);
+            .first);
+
+        expect(cellSize.height, rowHeight);
       },
     );
 
@@ -166,8 +162,8 @@ void main() {
       rowHeight: rowHeight,
       columns: ColumnHelper.timeColumn('header', count: 10),
     ).test(
-      'CellWidget 의 높이를 설정해도 timeColumn 의 팝업의 셀 높이는 '
-      'PlutoDefaultSettings.rowHeight 값으로 설정 되어야 한다.',
+      'CellWidget 의 높이를 설정하면 timeColumn 의 팝업의 셀 높이는 '
+      '설정한 값으로 설정 되어야 한다.',
       (tester) async {
         // Editing 상태로 설정
         await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
@@ -180,7 +176,7 @@ void main() {
         await tester.pumpAndSettle(const Duration(milliseconds: 300));
 
         final hourColumn =
-            find.text(stateManager!.configuration!.localeText.hour);
+            find.text(stateManager!.configuration.localeText.hour);
 
         expect(
           hourColumn,
@@ -190,12 +186,12 @@ void main() {
         // time 팝업의 CellWidget 높이 확인
         final parent =
             find.ancestor(of: hourColumn, matching: find.byType(PlutoGrid));
-        final cellWidget = find
+
+        final Size cellSize = tester.getSize(find
             .descendant(of: parent, matching: find.byType(PlutoBaseCell))
-            .evaluate()
-            .first
-            .widget as PlutoBaseCell;
-        expect(cellWidget.height, PlutoGridSettings.rowHeight);
+            .first);
+
+        expect(cellSize.height, rowHeight);
       },
     );
   });

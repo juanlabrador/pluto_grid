@@ -1,19 +1,21 @@
+import 'package:collection/collection.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/mockito.dart';
 import 'package:pluto_grid/pluto_grid.dart';
 
 import '../../../helper/column_helper.dart';
 import '../../../helper/row_helper.dart';
-import '../../../mock/mock_on_change_listener.dart';
+import '../../../mock/mock_methods.dart';
+import '../../../mock/shared_mocks.mocks.dart';
 
 void main() {
-  List<PlutoColumn> columns;
+  late List<PlutoColumn> columns;
 
-  List<PlutoRow>? rows;
+  late List<PlutoRow> rows;
 
   late PlutoGridStateManager stateManager;
 
-  MockOnChangeListener? listener;
+  MockMethods? listener;
 
   setUp(() {
     columns = [
@@ -25,13 +27,13 @@ void main() {
     stateManager = PlutoGridStateManager(
       columns: columns,
       rows: rows,
-      gridFocusNode: null,
-      scroll: null,
+      gridFocusNode: MockFocusNode(),
+      scroll: MockPlutoGridScrollController(),
     );
 
-    listener = MockOnChangeListener();
+    listener = MockMethods();
 
-    stateManager.addListener(listener!.onChangeVoidNoParamListener);
+    stateManager.addListener(listener!.noParamReturnVoid);
   });
 
   group('setIsDraggingRow', () {
@@ -46,7 +48,7 @@ void main() {
         stateManager.setIsDraggingRow(false);
 
         // then
-        verifyNever(listener!.onChangeVoidNoParamListener());
+        verifyNever(listener!.noParamReturnVoid());
       },
     );
 
@@ -62,7 +64,7 @@ void main() {
 
         // then
         expect(stateManager.isDraggingRow, isTrue);
-        verify(listener!.onChangeVoidNoParamListener()).called(1);
+        verify(listener!.noParamReturnVoid()).called(1);
       },
     );
 
@@ -78,7 +80,7 @@ void main() {
 
         // then
         expect(stateManager.isDraggingRow, isTrue);
-        verifyNever(listener!.onChangeVoidNoParamListener());
+        verifyNever(listener!.noParamReturnVoid());
       },
     );
   });
@@ -88,16 +90,16 @@ void main() {
       '인수로 전달 한 rows 가 dragRows 에 설정 되어야 한다.',
       () {
         // given
-        expect(stateManager.dragRows, isNull);
+        expect(stateManager.dragRows, isEmpty);
 
         // when
-        stateManager.setDragRows([rows![1], rows![2]]);
+        stateManager.setDragRows([rows[1], rows[2]]);
 
         // then
-        expect(stateManager.dragRows!.length, 2);
-        expect(stateManager.dragRows![0]!.key, rows![1].key);
-        expect(stateManager.dragRows![1]!.key, rows![2].key);
-        verify(listener!.onChangeVoidNoParamListener()).called(1);
+        expect(stateManager.dragRows.length, 2);
+        expect(stateManager.dragRows[0].key, rows[1].key);
+        expect(stateManager.dragRows[1].key, rows[2].key);
+        verify(listener!.noParamReturnVoid()).called(1);
       },
     );
 
@@ -106,16 +108,16 @@ void main() {
       'notify 가 false 인 경우 notifyListeners 가 호출 되지 않아야 한다.',
       () {
         // given
-        expect(stateManager.dragRows, isNull);
+        expect(stateManager.dragRows, isEmpty);
 
         // when
-        stateManager.setDragRows([rows![1], rows![2]], notify: false);
+        stateManager.setDragRows([rows[1], rows[2]], notify: false);
 
         // then
-        expect(stateManager.dragRows!.length, 2);
-        expect(stateManager.dragRows![0]!.key, rows![1].key);
-        expect(stateManager.dragRows![1]!.key, rows![2].key);
-        verifyNever(listener!.onChangeVoidNoParamListener());
+        expect(stateManager.dragRows.length, 2);
+        expect(stateManager.dragRows[0].key, rows[1].key);
+        expect(stateManager.dragRows[1].key, rows[2].key);
+        verifyNever(listener!.noParamReturnVoid());
       },
     );
   });
@@ -134,7 +136,7 @@ void main() {
         stateManager.setDragTargetRowIdx(1);
 
         // then
-        verifyNever(listener!.onChangeVoidNoParamListener());
+        verifyNever(listener!.noParamReturnVoid());
       },
     );
 
@@ -152,7 +154,7 @@ void main() {
 
         // then
         expect(stateManager.dragTargetRowIdx, 2);
-        verify(listener!.onChangeVoidNoParamListener()).called(1);
+        verify(listener!.noParamReturnVoid()).called(1);
       },
     );
 
@@ -170,19 +172,19 @@ void main() {
 
         // then
         expect(stateManager.dragTargetRowIdx, 2);
-        verifyNever(listener!.onChangeVoidNoParamListener());
+        verifyNever(listener!.noParamReturnVoid());
       },
     );
   });
 
   group('isRowIdxDragTarget', () {
     const int givenDragTargetRowIdx = 3;
-    List<PlutoRow>? givenDragRows;
+    late List<PlutoRow> givenDragRows;
 
     setUp(() {
       givenDragRows = [
-        rows![5],
-        rows![6],
+        rows[5],
+        rows[6],
       ];
       stateManager.setDragTargetRowIdx(givenDragTargetRowIdx);
       stateManager.setDragRows(givenDragRows);
@@ -202,7 +204,7 @@ void main() {
     test('rowIdx 가 주어진 rowIdx + dragRows.length 보다 크면 false 를 리턴해야 한다.', () {
       expect(
         stateManager.isRowIdxDragTarget(
-          givenDragTargetRowIdx + givenDragRows!.length + 1,
+          givenDragTargetRowIdx + givenDragRows.length + 1,
         ),
         isFalse,
       );
@@ -219,10 +221,10 @@ void main() {
       'rowIdx 가 주어진 rowIdx 보다 크고 '
       '주어진 rowIdx + dragRows.length 보다 작으면 true 를 리턴해야 한다.',
       () {
-        final rowIdx = givenDragTargetRowIdx + 1;
+        const rowIdx = givenDragTargetRowIdx + 1;
 
         expect(rowIdx, greaterThan(givenDragTargetRowIdx));
-        expect(rowIdx, lessThan(rowIdx + givenDragRows!.length));
+        expect(rowIdx, lessThan(rowIdx + givenDragRows.length));
 
         expect(
           stateManager.isRowIdxDragTarget(rowIdx),
@@ -238,8 +240,8 @@ void main() {
 
     setUp(() {
       givenDragRows = [
-        rows![5],
-        rows![6],
+        rows[5],
+        rows[6],
       ];
       stateManager.setDragTargetRowIdx(givenDragTargetRowIdx);
       stateManager.setDragRows(givenDragRows);
@@ -275,8 +277,8 @@ void main() {
 
     setUp(() {
       givenDragRows = [
-        rows![5],
-        rows![6],
+        rows[5],
+        rows[6],
       ];
       stateManager.setDragTargetRowIdx(givenDragTargetRowIdx);
       stateManager.setDragRows(givenDragRows);
@@ -297,7 +299,7 @@ void main() {
         expect(
           rowIdx,
           isNot(
-            stateManager.dragTargetRowIdx! + stateManager.dragRows!.length - 1,
+            stateManager.dragTargetRowIdx! + stateManager.dragRows.length - 1,
           ),
         );
 
@@ -312,7 +314,7 @@ void main() {
 
         expect(
           rowIdx,
-          stateManager.dragTargetRowIdx! + stateManager.dragRows!.length - 1,
+          stateManager.dragTargetRowIdx! + stateManager.dragRows.length - 1,
         );
 
         expect(stateManager.isRowIdxBottomDragTarget(rowIdx), isTrue);
@@ -322,16 +324,16 @@ void main() {
 
   group('isRowBeingDragged', () {
     const int givenDragTargetRowIdx = 3;
-    List<PlutoRow?> givenDragRows;
+    List<PlutoRow> givenDragRows;
 
-    final setDrag = () {
+    setDrag() {
       givenDragRows = [
-        rows![5],
-        rows![6],
+        rows[5],
+        rows[6],
       ];
       stateManager.setDragTargetRowIdx(givenDragTargetRowIdx);
       stateManager.setDragRows(givenDragRows);
-    };
+    }
 
     setUp(setDrag);
 
@@ -351,7 +353,7 @@ void main() {
 
         expect(stateManager.isDraggingRow, isTrue);
 
-        expect(stateManager.isRowBeingDragged(rows![0].key), isFalse);
+        expect(stateManager.isRowBeingDragged(rows[0].key), isFalse);
       },
     );
 
@@ -363,8 +365,8 @@ void main() {
 
         expect(stateManager.isDraggingRow, isTrue);
 
-        expect(stateManager.isRowBeingDragged(rows![5].key), isTrue);
-        expect(stateManager.isRowBeingDragged(rows![6].key), isTrue);
+        expect(stateManager.isRowBeingDragged(rows[5].key), isTrue);
+        expect(stateManager.isRowBeingDragged(rows[6].key), isTrue);
       },
     );
 
@@ -377,22 +379,18 @@ void main() {
 
         expect(stateManager.isDraggingRow, isFalse);
         expect(
-          stateManager.dragRows!.firstWhere(
-            (element) => element!.key == rows![5].key,
-            orElse: () => null,
-          ),
+          stateManager.dragRows
+              .firstWhereOrNull((element) => element.key == rows[5].key),
           isNot(isNull),
         );
         expect(
-          stateManager.dragRows!.firstWhere(
-            (element) => element!.key == rows![6].key,
-            orElse: () => null,
-          ),
+          stateManager.dragRows
+              .firstWhereOrNull((element) => element.key == rows[6].key),
           isNot(isNull),
         );
 
-        expect(stateManager.isRowBeingDragged(rows![5].key), isFalse);
-        expect(stateManager.isRowBeingDragged(rows![6].key), isFalse);
+        expect(stateManager.isRowBeingDragged(rows[5].key), isFalse);
+        expect(stateManager.isRowBeingDragged(rows[6].key), isFalse);
       },
     );
   });

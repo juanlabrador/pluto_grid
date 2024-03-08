@@ -9,9 +9,10 @@ import '../../helper/pluto_widget_test_helper.dart';
 void main() {
   PlutoGridStateManager? stateManager;
 
-  final buildGrid = ({
+  buildGrid({
     int numberOfRows = 10,
     int numberOfColumns = 10,
+    PlutoGridConfiguration configuration = const PlutoGridConfiguration(),
   }) {
     // given
     final columns = [
@@ -39,23 +40,26 @@ void main() {
         await tester.pumpWidget(
           MaterialApp(
             home: Material(
-              child: Container(
-                child: PlutoGrid(
-                  columns: columns,
-                  rows: rows,
-                  onLoaded: (PlutoGridOnLoadedEvent event) {
-                    stateManager = event.stateManager;
-                  },
-                ),
+              child: PlutoGrid(
+                columns: columns,
+                rows: rows,
+                onLoaded: (PlutoGridOnLoadedEvent event) {
+                  stateManager = event.stateManager;
+                },
+                configuration: configuration,
               ),
             ),
           ),
         );
       },
     );
-  };
+  }
 
-  buildGrid().test(
+  buildGrid(
+    configuration: const PlutoGridConfiguration(
+      enableMoveDownAfterSelecting: true,
+    ),
+  ).test(
     '문자열 입력으로 날짜 팝업을 호출 하고 날짜를 선택하면 다음 행으로 이동 되며, '
     '다음 행에서 다시 문자열 입력으로 팝업을 호출 할 수 있어야 한다.',
     (tester) async {
@@ -76,7 +80,7 @@ void main() {
       await tester.pumpAndSettle(const Duration(milliseconds: 300));
 
       // 기존 셀 값이 2020-01-08 로 변경 되어야 한다.
-      expect(stateManager!.rows[0]!.cells['date']!.value, '2020-01-08');
+      expect(stateManager!.rows[0].cells['date']!.value, '2020-01-08');
 
       // 현재 셀이 다음 행으로 변경 되어야 한다.
       expect(stateManager!.currentCellPosition!.rowIdx, 1);
@@ -93,7 +97,7 @@ void main() {
       await tester.sendKeyEvent(LogicalKeyboardKey.enter);
 
       // 기존 셀 값이 2020-01-09 로 변경 되어야 한다.
-      expect(stateManager!.rows[1]!.cells['date']!.value, '2020-01-09');
+      expect(stateManager!.rows[1].cells['date']!.value, '2020-01-09');
 
       // 현재 셀이 다음 행으로 변경 되어야 한다.
       expect(stateManager!.currentCellPosition!.rowIdx, 2);

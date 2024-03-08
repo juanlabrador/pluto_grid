@@ -6,10 +6,43 @@ import 'package:pluto_grid/pluto_grid.dart';
 import '../../../helper/column_helper.dart';
 import '../../../helper/pluto_widget_test_helper.dart';
 import '../../../helper/row_helper.dart';
-import '../../../mock/mock_on_change_listener.dart';
-import '../../../mock/mock_pluto_scroll_controller.dart';
+import '../../../mock/mock_methods.dart';
+import '../../../mock/shared_mocks.mocks.dart';
 
 void main() {
+  final scroll = MockPlutoGridScrollController();
+
+  final vertical = MockLinkedScrollControllerGroup();
+
+  when(scroll.vertical).thenReturn(vertical);
+
+  PlutoGridStateManager createStateManager({
+    required List<PlutoColumn> columns,
+    required List<PlutoRow> rows,
+    FocusNode? gridFocusNode,
+    PlutoGridScrollController? scroll,
+    BoxConstraints? layout,
+    PlutoGridConfiguration configuration = const PlutoGridConfiguration(),
+    Widget Function(PlutoGridStateManager)? createHeader,
+  }) {
+    final stateManager = PlutoGridStateManager(
+      columns: columns,
+      rows: rows,
+      gridFocusNode: gridFocusNode ?? MockFocusNode(),
+      scroll: scroll ?? MockPlutoGridScrollController(),
+      configuration: configuration,
+      createHeader: createHeader,
+    );
+
+    stateManager.setEventManager(MockPlutoGridEventManager());
+
+    if (layout != null) {
+      stateManager.setLayout(layout);
+    }
+
+    return stateManager;
+  }
+
   group('checkedRows', () {
     testWidgets(
       '선택 된 행이 없는 경우 빈 List 를 리턴 해야 한다.',
@@ -20,11 +53,11 @@ void main() {
 
         List<PlutoRow> rows = RowHelper.count(10, columns);
 
-        PlutoGridStateManager stateManager = PlutoGridStateManager(
+        PlutoGridStateManager stateManager = createStateManager(
           columns: columns,
           rows: rows,
           gridFocusNode: null,
-          scroll: null,
+          scroll: scroll,
         );
 
         // when
@@ -44,16 +77,16 @@ void main() {
 
         List<PlutoRow> rows = [...checkedRows, ...RowHelper.count(10, columns)];
 
-        PlutoGridStateManager stateManager = PlutoGridStateManager(
+        PlutoGridStateManager stateManager = createStateManager(
           columns: columns,
           rows: rows,
           gridFocusNode: null,
-          scroll: null,
+          scroll: scroll,
         );
 
         // when
         final keys =
-            stateManager.checkedRows.toList().map((e) => e!.key).toList();
+            stateManager.checkedRows.toList().map((e) => e.key).toList();
 
         // then
         expect(keys.length, 3);
@@ -74,11 +107,11 @@ void main() {
 
         List<PlutoRow> rows = RowHelper.count(10, columns);
 
-        PlutoGridStateManager stateManager = PlutoGridStateManager(
+        PlutoGridStateManager stateManager = createStateManager(
           columns: columns,
           rows: rows,
           gridFocusNode: null,
-          scroll: null,
+          scroll: scroll,
         );
 
         // when
@@ -98,16 +131,16 @@ void main() {
 
         List<PlutoRow> rows = [...checkedRows, ...RowHelper.count(10, columns)];
 
-        PlutoGridStateManager stateManager = PlutoGridStateManager(
+        PlutoGridStateManager stateManager = createStateManager(
           columns: columns,
           rows: rows,
           gridFocusNode: null,
-          scroll: null,
+          scroll: scroll,
         );
 
         // when
         final keys =
-            stateManager.unCheckedRows.toList().map((e) => e!.key).toList();
+            stateManager.unCheckedRows.toList().map((e) => e.key).toList();
 
         // then
         expect(keys.length, 10);
@@ -128,11 +161,11 @@ void main() {
 
         List<PlutoRow> rows = RowHelper.count(10, columns);
 
-        PlutoGridStateManager stateManager = PlutoGridStateManager(
+        PlutoGridStateManager stateManager = createStateManager(
           columns: columns,
           rows: rows,
           gridFocusNode: null,
-          scroll: null,
+          scroll: scroll,
         );
 
         // when
@@ -152,11 +185,11 @@ void main() {
 
         List<PlutoRow> rows = [...checkedRows, ...RowHelper.count(10, columns)];
 
-        PlutoGridStateManager stateManager = PlutoGridStateManager(
+        PlutoGridStateManager stateManager = createStateManager(
           columns: columns,
           rows: rows,
           gridFocusNode: null,
-          scroll: null,
+          scroll: scroll,
         );
 
         // when
@@ -176,11 +209,11 @@ void main() {
 
         List<PlutoRow> rows = RowHelper.count(10, columns);
 
-        PlutoGridStateManager stateManager = PlutoGridStateManager(
+        PlutoGridStateManager stateManager = createStateManager(
           columns: columns,
           rows: rows,
           gridFocusNode: null,
-          scroll: null,
+          scroll: scroll,
         );
 
         // when
@@ -202,11 +235,11 @@ void main() {
 
         List<PlutoRow> rows = [...checkedRows, ...uncheckedRows];
 
-        PlutoGridStateManager stateManager = PlutoGridStateManager(
+        PlutoGridStateManager stateManager = createStateManager(
           columns: columns,
           rows: rows,
           gridFocusNode: null,
-          scroll: null,
+          scroll: scroll,
         );
 
         // when
@@ -226,11 +259,11 @@ void main() {
 
         List<PlutoRow> rows = [...checkedRows];
 
-        PlutoGridStateManager stateManager = PlutoGridStateManager(
+        PlutoGridStateManager stateManager = createStateManager(
           columns: columns,
           rows: rows,
           gridFocusNode: null,
-          scroll: null,
+          scroll: scroll,
         );
 
         // when
@@ -246,19 +279,19 @@ void main() {
       // given
       List<PlutoColumn> columns = [
         ...ColumnHelper.textColumn('left',
-            count: 3, frozen: PlutoColumnFrozen.left),
+            count: 3, frozen: PlutoColumnFrozen.start),
         ...ColumnHelper.textColumn('body', count: 3, width: 150),
         ...ColumnHelper.textColumn('right',
-            count: 3, frozen: PlutoColumnFrozen.right),
+            count: 3, frozen: PlutoColumnFrozen.end),
       ];
 
       List<PlutoRow> rows = RowHelper.count(10, columns);
 
-      PlutoGridStateManager stateManager = PlutoGridStateManager(
+      PlutoGridStateManager stateManager = createStateManager(
         columns: columns,
         rows: rows,
         gridFocusNode: null,
-        scroll: null,
+        scroll: scroll,
       );
 
       // when
@@ -273,19 +306,19 @@ void main() {
       // given
       List<PlutoColumn> columns = [
         ...ColumnHelper.textColumn('left',
-            count: 3, frozen: PlutoColumnFrozen.left),
+            count: 3, frozen: PlutoColumnFrozen.start),
         ...ColumnHelper.textColumn('body', count: 3, width: 150),
         ...ColumnHelper.textColumn('right',
-            count: 3, frozen: PlutoColumnFrozen.right),
+            count: 3, frozen: PlutoColumnFrozen.end),
       ];
 
       List<PlutoRow> rows = RowHelper.count(10, columns);
 
-      PlutoGridStateManager stateManager = PlutoGridStateManager(
+      PlutoGridStateManager stateManager = createStateManager(
         columns: columns,
         rows: rows,
         gridFocusNode: null,
-        scroll: null,
+        scroll: scroll,
       );
 
       stateManager.setLayout(const BoxConstraints());
@@ -307,19 +340,19 @@ void main() {
       // given
       List<PlutoColumn> columns = [
         ...ColumnHelper.textColumn('left',
-            count: 3, frozen: PlutoColumnFrozen.left),
+            count: 3, frozen: PlutoColumnFrozen.start),
         ...ColumnHelper.textColumn('body', count: 3, width: 150),
         ...ColumnHelper.textColumn('right',
-            count: 3, frozen: PlutoColumnFrozen.right),
+            count: 3, frozen: PlutoColumnFrozen.end),
       ];
 
       List<PlutoRow> rows = RowHelper.count(10, columns);
 
-      PlutoGridStateManager stateManager = PlutoGridStateManager(
+      PlutoGridStateManager stateManager = createStateManager(
         columns: columns,
         rows: rows,
         gridFocusNode: null,
-        scroll: null,
+        scroll: scroll,
       );
 
       // when
@@ -334,22 +367,21 @@ void main() {
       // given
       List<PlutoColumn> columns = [
         ...ColumnHelper.textColumn('left',
-            count: 3, frozen: PlutoColumnFrozen.left),
+            count: 3, frozen: PlutoColumnFrozen.start),
         ...ColumnHelper.textColumn('body', count: 3, width: 150),
         ...ColumnHelper.textColumn('right',
-            count: 3, frozen: PlutoColumnFrozen.right),
+            count: 3, frozen: PlutoColumnFrozen.end),
       ];
 
       List<PlutoRow> rows = RowHelper.count(10, columns);
 
-      PlutoGridStateManager stateManager = PlutoGridStateManager(
+      PlutoGridStateManager stateManager = createStateManager(
         columns: columns,
         rows: rows,
         gridFocusNode: null,
-        scroll: null,
+        scroll: scroll,
+        layout: const BoxConstraints(),
       );
-
-      stateManager.setLayout(const BoxConstraints());
 
       // when
       String selectColumnField = 'left1';
@@ -368,7 +400,7 @@ void main() {
 
     const rowsLength = 10;
 
-    final buildRows = () {
+    buildRows() {
       return PlutoWidgetTestHelper('build rows', (tester) async {
         List<PlutoColumn> columns = [
           ...ColumnHelper.textColumn('text', count: 3, width: 150),
@@ -376,25 +408,22 @@ void main() {
 
         List<PlutoRow> rows = RowHelper.count(rowsLength, columns);
 
-        final scroll = MockPlutoScrollController();
-
         when(scroll.verticalOffset).thenReturn(0);
 
-        stateManager = PlutoGridStateManager(
+        stateManager = createStateManager(
           columns: columns,
           rows: rows,
           gridFocusNode: null,
           scroll: scroll,
+          layout: const BoxConstraints(
+            maxWidth: 500,
+            maxHeight: 300,
+          ),
         );
-
-        stateManager.setLayout(const BoxConstraints(
-          maxWidth: 500,
-          maxHeight: 300,
-        ));
 
         stateManager.setGridGlobalOffset(const Offset(0.0, 0.0));
       });
-    };
+    }
 
     buildRows().test(
       '0 번 row 보다 위인 offset 인 경우 null 을 리턴해야 한다.',
@@ -458,7 +487,7 @@ void main() {
 
         List<PlutoRow> rows = RowHelper.count(5, columns);
 
-        PlutoGridStateManager stateManager = PlutoGridStateManager(
+        PlutoGridStateManager stateManager = createStateManager(
           columns: columns,
           rows: rows,
           gridFocusNode: null,
@@ -483,7 +512,7 @@ void main() {
 
         List<PlutoRow> rows = RowHelper.count(5, columns);
 
-        PlutoGridStateManager stateManager = PlutoGridStateManager(
+        PlutoGridStateManager stateManager = createStateManager(
           columns: columns,
           rows: rows,
           gridFocusNode: null,
@@ -508,7 +537,7 @@ void main() {
 
         List<PlutoRow> rows = RowHelper.count(5, columns);
 
-        PlutoGridStateManager stateManager = PlutoGridStateManager(
+        PlutoGridStateManager stateManager = createStateManager(
           columns: columns,
           rows: rows,
           gridFocusNode: null,
@@ -533,7 +562,7 @@ void main() {
 
         List<PlutoRow> rows = RowHelper.count(5, columns);
 
-        PlutoGridStateManager stateManager = PlutoGridStateManager(
+        PlutoGridStateManager stateManager = createStateManager(
           columns: columns,
           rows: rows,
           gridFocusNode: null,
@@ -549,68 +578,6 @@ void main() {
     );
   });
 
-  group('setSortIdxOfRows', () {
-    testWidgets(
-        'The sortIdx value of rows should be increased from 0 and filled.',
-        (WidgetTester tester) async {
-      // given
-      List<PlutoColumn> columns = [
-        ...ColumnHelper.textColumn('text', count: 3, width: 150),
-      ];
-
-      List<PlutoRow> rows = RowHelper.count(5, columns);
-
-      PlutoGridStateManager stateManager = PlutoGridStateManager(
-        columns: columns,
-        rows: rows,
-        gridFocusNode: null,
-        scroll: null,
-      );
-
-      // when
-      final rowsFilledSortIdx = stateManager.setSortIdxOfRows(rows);
-
-      // then
-      expect(rowsFilledSortIdx[0].sortIdx, 0);
-      expect(rowsFilledSortIdx[1].sortIdx, 1);
-      expect(rowsFilledSortIdx[2].sortIdx, 2);
-      expect(rowsFilledSortIdx[3].sortIdx, 3);
-      expect(rowsFilledSortIdx[4].sortIdx, 4);
-    });
-
-    testWidgets(
-        'The sortIdx value of rows should be decrease from 4 and filled.',
-        (WidgetTester tester) async {
-      // given
-      List<PlutoColumn> columns = [
-        ...ColumnHelper.textColumn('text', count: 3, width: 150),
-      ];
-
-      List<PlutoRow> rows = RowHelper.count(5, columns);
-
-      PlutoGridStateManager stateManager = PlutoGridStateManager(
-        columns: columns,
-        rows: rows,
-        gridFocusNode: null,
-        scroll: null,
-      );
-
-      // when
-      final rowsFilledSortIdx = stateManager.setSortIdxOfRows(
-        rows,
-        increase: false,
-        start: 4,
-      );
-
-      // then
-      expect(rowsFilledSortIdx[0].sortIdx, 4);
-      expect(rowsFilledSortIdx[1].sortIdx, 3);
-      expect(rowsFilledSortIdx[2].sortIdx, 2);
-      expect(rowsFilledSortIdx[3].sortIdx, 1);
-      expect(rowsFilledSortIdx[4].sortIdx, 0);
-    });
-  });
-
   group('setRowChecked', () {
     testWidgets(
       '해당 row 가 없는 경우 notifyListener 가 호출 되지 않아야 한다.',
@@ -622,22 +589,22 @@ void main() {
 
         List<PlutoRow> rows = RowHelper.count(5, columns);
 
-        PlutoGridStateManager stateManager = PlutoGridStateManager(
+        PlutoGridStateManager stateManager = createStateManager(
           columns: columns,
           rows: rows,
           gridFocusNode: null,
           scroll: null,
         );
 
-        final listener = MockOnChangeListener();
+        final listener = MockMethods();
 
-        stateManager.addListener(listener.onChangeVoidNoParamListener);
+        stateManager.addListener(listener.noParamReturnVoid);
 
         // when
         stateManager.setRowChecked(PlutoRow(cells: {}), true);
 
         // then
-        verifyNever(listener.onChangeVoidNoParamListener());
+        verifyNever(listener.noParamReturnVoid());
       },
     );
 
@@ -651,16 +618,16 @@ void main() {
 
         List<PlutoRow> rows = RowHelper.count(5, columns);
 
-        PlutoGridStateManager stateManager = PlutoGridStateManager(
+        PlutoGridStateManager stateManager = createStateManager(
           columns: columns,
           rows: rows,
           gridFocusNode: null,
           scroll: null,
         );
 
-        final listener = MockOnChangeListener();
+        final listener = MockMethods();
 
-        stateManager.addListener(listener.onChangeVoidNoParamListener);
+        stateManager.addListener(listener.noParamReturnVoid);
 
         // when
         final row = rows.first;
@@ -670,19 +637,19 @@ void main() {
         // then
         expect(
           stateManager.rows
-              .firstWhere((element) => element!.key == row.key)!
+              .firstWhere((element) => element.key == row.key)
               .checked,
           isTrue,
         );
 
-        verify(listener.onChangeVoidNoParamListener()).called(1);
+        verify(listener.noParamReturnVoid()).called(1);
       },
     );
   });
 
   group('insertRows', () {
     testWidgets(
-      '삽입 할 위치가 rows 인덱스 범위가 아니면 행이 추가 되지 않아야 한다.',
+      '삽입 할 위치가 rows 인덱스 범위가 0 보다 작으면 0에 최대 index 보다 크면 최대 index 에 insert 된다.',
       (WidgetTester tester) async {
         // given
         List<PlutoColumn> columns = [
@@ -691,7 +658,7 @@ void main() {
 
         List<PlutoRow> rows = RowHelper.count(5, columns);
 
-        PlutoGridStateManager stateManager = PlutoGridStateManager(
+        PlutoGridStateManager stateManager = createStateManager(
           columns: columns,
           rows: rows,
           gridFocusNode: null,
@@ -699,20 +666,33 @@ void main() {
         );
 
         // when
-        final countRows = stateManager.rows.length;
+        int countRows = stateManager.rows.length;
 
         // then
-        stateManager.insertRows(-1, RowHelper.count(3, columns));
-        expect(stateManager.rows.length, countRows);
+        {
+          final addedRows = RowHelper.count(3, columns);
+          stateManager.insertRows(-1, addedRows);
+          countRows += 3;
+          expect(stateManager.rows.length, countRows);
+          expect(stateManager.rows.getRange(0, 3), addedRows);
+        }
 
-        stateManager.insertRows(-2, RowHelper.count(3, columns));
-        expect(stateManager.rows.length, countRows);
+        {
+          final addedRows = RowHelper.count(3, columns);
+          stateManager.insertRows(-2, addedRows);
+          countRows += 3;
+          expect(stateManager.rows.length, countRows);
+          expect(stateManager.rows.getRange(0, 3), addedRows);
+        }
 
-        stateManager.insertRows(
-          stateManager.rows.length + 1,
-          RowHelper.count(3, columns),
-        );
-        expect(stateManager.rows.length, countRows);
+        {
+          final addedRows = RowHelper.count(3, columns);
+          stateManager.insertRows(stateManager.rows.length + 1, addedRows);
+          countRows += 3;
+          expect(stateManager.rows.length, countRows);
+          final length = stateManager.rows.length;
+          expect(stateManager.rows.getRange(length - 3, length), addedRows);
+        }
       },
     );
 
@@ -726,7 +706,7 @@ void main() {
 
         List<PlutoRow> rows = RowHelper.count(5, columns);
 
-        PlutoGridStateManager stateManager = PlutoGridStateManager(
+        PlutoGridStateManager stateManager = createStateManager(
           columns: columns,
           rows: rows,
           gridFocusNode: null,
@@ -766,7 +746,7 @@ void main() {
 
         List<PlutoRow> rows = RowHelper.count(5, columns);
 
-        PlutoGridStateManager stateManager = PlutoGridStateManager(
+        PlutoGridStateManager stateManager = createStateManager(
           columns: columns,
           rows: rows,
           gridFocusNode: null,
@@ -781,7 +761,7 @@ void main() {
         expect(stateManager.rows.length, 8);
 
         for (var i = 0; i < stateManager.rows.length; i += 1) {
-          expect(stateManager.rows[i]!.sortIdx, i);
+          expect(stateManager.rows[i].sortIdx, i);
         }
       },
     );
@@ -808,18 +788,18 @@ void main() {
           }),
         ];
 
-        PlutoGridStateManager stateManager = PlutoGridStateManager(
+        PlutoGridStateManager stateManager = createStateManager(
           columns: columns,
           rows: rows,
           gridFocusNode: null,
           scroll: null,
         );
 
-        stateManager.toggleSortColumn(columns.first.key);
+        stateManager.toggleSortColumn(columns.first);
         expect(stateManager.hasSortedColumn, isTrue);
-        expect(stateManager.rows[0]!.sortIdx, 1);
-        expect(stateManager.rows[1]!.sortIdx, 2);
-        expect(stateManager.rows[2]!.sortIdx, 0);
+        expect(stateManager.rows[0].sortIdx, 1); // 1
+        expect(stateManager.rows[1].sortIdx, 2); // 2
+        expect(stateManager.rows[2].sortIdx, 0); // 3
 
         // when
         final rowsToAdd = [
@@ -837,23 +817,23 @@ void main() {
         stateManager.insertRows(1, rowsToAdd);
 
         expect(stateManager.rows.length, 6);
-        expect(stateManager.rows[0]!.sortIdx, 1);
-        expect(stateManager.rows[0]!.cells['text0']!.value, '1');
+        expect(stateManager.rows[0].sortIdx, 1);
+        expect(stateManager.rows[0].cells['text0']!.value, '1');
 
-        expect(stateManager.rows[1]!.sortIdx, 2);
-        expect(stateManager.rows[1]!.cells['text0']!.value, 'a');
+        expect(stateManager.rows[1].sortIdx, 2);
+        expect(stateManager.rows[1].cells['text0']!.value, 'a');
 
-        expect(stateManager.rows[2]!.sortIdx, 3);
-        expect(stateManager.rows[2]!.cells['text0']!.value, 'b');
+        expect(stateManager.rows[2].sortIdx, 3);
+        expect(stateManager.rows[2].cells['text0']!.value, 'b');
 
-        expect(stateManager.rows[3]!.sortIdx, 4);
-        expect(stateManager.rows[3]!.cells['text0']!.value, 'c');
+        expect(stateManager.rows[3].sortIdx, 4);
+        expect(stateManager.rows[3].cells['text0']!.value, 'c');
 
-        expect(stateManager.rows[4]!.sortIdx, 5);
-        expect(stateManager.rows[4]!.cells['text0']!.value, '2');
+        expect(stateManager.rows[4].sortIdx, 5);
+        expect(stateManager.rows[4].cells['text0']!.value, '2');
 
-        expect(stateManager.rows[5]!.sortIdx, 0);
-        expect(stateManager.rows[5]!.cells['text0']!.value, '3');
+        expect(stateManager.rows[5].sortIdx, 0);
+        expect(stateManager.rows[5].cells['text0']!.value, '3');
       },
     );
   });
@@ -869,7 +849,7 @@ void main() {
 
         List<PlutoRow> rows = RowHelper.count(5, columns);
 
-        PlutoGridStateManager stateManager = PlutoGridStateManager(
+        PlutoGridStateManager stateManager = createStateManager(
           columns: columns,
           rows: rows,
           gridFocusNode: null,
@@ -880,9 +860,16 @@ void main() {
         stateManager.prependNewRows();
 
         // then
+        // 추가된 행의 기본 값 및 sortIdx
         expect(stateManager.rows.length, 6);
+        expect(
+          stateManager.rows[0].cells['text0']!.value,
+          columns[0].type.defaultValue,
+        );
+        expect(stateManager.rows[0].sortIdx, 0);
         // 원래 있던 첫번 째 Row 의 셀이 두번 째로 이동
-        expect(stateManager.rows[1]!.cells['text0']!.value, 'text0 value 0');
+        expect(stateManager.rows[1].cells['text0']!.value, 'text0 value 0');
+        expect(stateManager.rows[1].sortIdx, 1);
       },
     );
 
@@ -896,7 +883,7 @@ void main() {
 
         List<PlutoRow> rows = RowHelper.count(5, columns);
 
-        PlutoGridStateManager stateManager = PlutoGridStateManager(
+        PlutoGridStateManager stateManager = createStateManager(
           columns: columns,
           rows: rows,
           gridFocusNode: null,
@@ -909,7 +896,8 @@ void main() {
         // then
         expect(stateManager.rows.length, 10);
         // 원래 있던 첫번 째 Row 의 셀이 6번 째로 이동
-        expect(stateManager.rows[5]!.cells['text0']!.value, 'text0 value 0');
+        expect(stateManager.rows[5].cells['text0']!.value, 'text0 value 0');
+        expect(stateManager.rows[5].sortIdx, 5);
       },
     );
   });
@@ -924,7 +912,7 @@ void main() {
 
       List<PlutoRow> rows = RowHelper.count(5, columns);
 
-      PlutoGridStateManager stateManager = PlutoGridStateManager(
+      PlutoGridStateManager stateManager = createStateManager(
         columns: columns,
         rows: rows,
         gridFocusNode: null,
@@ -937,7 +925,8 @@ void main() {
       stateManager.prependRows([newRow]);
 
       // then
-      expect(stateManager.rows[0]!.key, newRow.key);
+      expect(stateManager.rows[0].key, newRow.key);
+      expect(stateManager.rows[0].sortIdx, 0);
       expect(stateManager.rows.length, 6);
     });
 
@@ -950,7 +939,7 @@ void main() {
 
       List<PlutoRow> rows = RowHelper.count(5, columns);
 
-      PlutoGridStateManager stateManager = PlutoGridStateManager(
+      PlutoGridStateManager stateManager = createStateManager(
         columns: columns,
         rows: rows,
         gridFocusNode: null,
@@ -976,16 +965,15 @@ void main() {
 
       List<PlutoRow> rows = RowHelper.count(5, columns);
 
-      PlutoGridStateManager stateManager = PlutoGridStateManager(
+      PlutoGridStateManager stateManager = createStateManager(
         columns: columns,
         rows: rows,
         gridFocusNode: null,
-        scroll: MockPlutoScrollController(),
+        scroll: scroll,
+        layout: const BoxConstraints(),
       );
 
-      stateManager.setLayout(const BoxConstraints());
-
-      final int rowIdxBeforePrependRows = 0;
+      const int rowIdxBeforePrependRows = 0;
 
       stateManager.setCurrentCell(
           rows.first.cells['text1'], rowIdxBeforePrependRows);
@@ -1019,17 +1007,17 @@ void main() {
 
       List<PlutoRow> rows = RowHelper.count(5, columns);
 
-      PlutoGridStateManager stateManager = PlutoGridStateManager(
+      PlutoGridStateManager stateManager = createStateManager(
         columns: columns,
         rows: rows,
         gridFocusNode: null,
-        scroll: MockPlutoScrollController(),
+        scroll: scroll,
       );
 
-      final int rowIdxBeforePrependRows = 3;
+      const int rowIdxBeforePrependRows = 3;
 
       stateManager.setCurrentSelectingPosition(
-        cellPosition: PlutoGridCellPosition(
+        cellPosition: const PlutoGridCellPosition(
           columnIdx: 2,
           rowIdx: rowIdxBeforePrependRows,
         ),
@@ -1066,12 +1054,14 @@ void main() {
 
         List<PlutoRow> rows = RowHelper.count(5, columns);
 
-        PlutoGridStateManager stateManager = PlutoGridStateManager(
+        PlutoGridStateManager stateManager = createStateManager(
           columns: columns,
           rows: rows,
           gridFocusNode: null,
           scroll: null,
         );
+
+        expect(stateManager.rows[4].sortIdx, 4);
 
         // when
         stateManager.appendNewRows();
@@ -1080,9 +1070,12 @@ void main() {
         expect(stateManager.rows.length, 6);
         // 마지막 Row 에 추가 됨
         expect(
-          stateManager.rows[5]!.cells['text0']!.value,
-          columns[0].type!.defaultValue,
+          stateManager.rows[5].cells['text0']!.value,
+          columns[0].type.defaultValue,
         );
+        // sortIdx 가 마지막
+        expect(stateManager.rows[4].sortIdx, 4);
+        expect(stateManager.rows[5].sortIdx, 5);
       },
     );
 
@@ -1096,7 +1089,7 @@ void main() {
 
         List<PlutoRow> rows = RowHelper.count(5, columns);
 
-        PlutoGridStateManager stateManager = PlutoGridStateManager(
+        PlutoGridStateManager stateManager = createStateManager(
           columns: columns,
           rows: rows,
           gridFocusNode: null,
@@ -1110,13 +1103,16 @@ void main() {
         expect(stateManager.rows.length, 10);
         // 추가 된 5~9 번 셀의 기본 값
         expect(
-          stateManager.rows[5]!.cells['text0']!.value,
-          columns[0].type!.defaultValue,
+          stateManager.rows[5].cells['text0']!.value,
+          columns[0].type.defaultValue,
         );
         expect(
-          stateManager.rows[9]!.cells['text0']!.value,
-          columns[0].type!.defaultValue,
+          stateManager.rows[9].cells['text0']!.value,
+          columns[0].type.defaultValue,
         );
+        // sortIdx
+        expect(stateManager.rows[5].sortIdx, 5);
+        expect(stateManager.rows[9].sortIdx, 9);
       },
     );
   });
@@ -1131,7 +1127,7 @@ void main() {
 
       List<PlutoRow> rows = RowHelper.count(5, columns);
 
-      PlutoGridStateManager stateManager = PlutoGridStateManager(
+      PlutoGridStateManager stateManager = createStateManager(
         columns: columns,
         rows: rows,
         gridFocusNode: null,
@@ -1144,8 +1140,10 @@ void main() {
       stateManager.appendRows(newRows);
 
       // then
-      expect(stateManager.rows[5]!.key, newRows[0].key);
-      expect(stateManager.rows[6]!.key, newRows[1].key);
+      expect(stateManager.rows[5].key, newRows[0].key);
+      expect(stateManager.rows[6].key, newRows[1].key);
+      expect(stateManager.rows[5].sortIdx, 5);
+      expect(stateManager.rows[6].sortIdx, 6);
       expect(stateManager.rows.length, 7);
     });
 
@@ -1158,7 +1156,7 @@ void main() {
 
       List<PlutoRow> rows = RowHelper.count(5, columns);
 
-      PlutoGridStateManager stateManager = PlutoGridStateManager(
+      PlutoGridStateManager stateManager = createStateManager(
         columns: columns,
         rows: rows,
         gridFocusNode: null,
@@ -1210,7 +1208,7 @@ void main() {
 
         List<PlutoRow> rows = [];
 
-        PlutoGridStateManager stateManager = PlutoGridStateManager(
+        PlutoGridStateManager stateManager = createStateManager(
           columns: columns,
           rows: rows,
           gridFocusNode: null,
@@ -1242,7 +1240,7 @@ void main() {
 
         List<PlutoRow> rows = [];
 
-        PlutoGridStateManager stateManager = PlutoGridStateManager(
+        PlutoGridStateManager stateManager = createStateManager(
           columns: columns,
           rows: rows,
           gridFocusNode: null,
@@ -1267,7 +1265,7 @@ void main() {
 
         List<PlutoRow> rows = [];
 
-        PlutoGridStateManager stateManager = PlutoGridStateManager(
+        PlutoGridStateManager stateManager = createStateManager(
           columns: columns,
           rows: rows,
           gridFocusNode: null,
@@ -1292,7 +1290,7 @@ void main() {
 
       List<PlutoRow> rows = RowHelper.count(5, columns);
 
-      PlutoGridStateManager stateManager = PlutoGridStateManager(
+      PlutoGridStateManager stateManager = createStateManager(
         columns: columns,
         rows: rows,
         gridFocusNode: null,
@@ -1315,14 +1313,13 @@ void main() {
 
       List<PlutoRow> rows = RowHelper.count(5, columns);
 
-      PlutoGridStateManager stateManager = PlutoGridStateManager(
+      PlutoGridStateManager stateManager = createStateManager(
         columns: columns,
         rows: rows,
         gridFocusNode: null,
         scroll: null,
+        layout: const BoxConstraints(),
       );
-
-      stateManager.setLayout(const BoxConstraints());
 
       // when
       final currentRowKey = rows[3].key;
@@ -1333,10 +1330,10 @@ void main() {
 
       // then
       expect(stateManager.rows.length, 4);
-      expect(stateManager.rows[0]!.key, isNot(currentRowKey));
-      expect(stateManager.rows[1]!.key, isNot(currentRowKey));
-      expect(stateManager.rows[2]!.key, isNot(currentRowKey));
-      expect(stateManager.rows[3]!.key, isNot(currentRowKey));
+      expect(stateManager.rows[0].key, isNot(currentRowKey));
+      expect(stateManager.rows[1].key, isNot(currentRowKey));
+      expect(stateManager.rows[2].key, isNot(currentRowKey));
+      expect(stateManager.rows[3].key, isNot(currentRowKey));
     });
   });
 
@@ -1350,7 +1347,7 @@ void main() {
 
       List<PlutoRow> rows = RowHelper.count(5, columns);
 
-      PlutoGridStateManager stateManager = PlutoGridStateManager(
+      PlutoGridStateManager stateManager = createStateManager(
         columns: columns,
         rows: rows,
         gridFocusNode: null,
@@ -1358,7 +1355,7 @@ void main() {
       );
 
       // when
-      stateManager.removeRows(null);
+      stateManager.removeRows([]);
 
       // then
       expect(stateManager.rows.length, 5);
@@ -1373,7 +1370,7 @@ void main() {
 
       List<PlutoRow> rows = RowHelper.count(5, columns);
 
-      PlutoGridStateManager stateManager = PlutoGridStateManager(
+      PlutoGridStateManager stateManager = createStateManager(
         columns: columns,
         rows: rows,
         gridFocusNode: null,
@@ -1390,9 +1387,9 @@ void main() {
           deleteRows.map((e) => e.key).toList(growable: false);
 
       expect(stateManager.rows.length, 3);
-      expect(deleteRowKeys.contains(stateManager.rows[0]!.key), false);
-      expect(deleteRowKeys.contains(stateManager.rows[1]!.key), false);
-      expect(deleteRowKeys.contains(stateManager.rows[2]!.key), false);
+      expect(deleteRowKeys.contains(stateManager.rows[0].key), false);
+      expect(deleteRowKeys.contains(stateManager.rows[1].key), false);
+      expect(deleteRowKeys.contains(stateManager.rows[2].key), false);
     });
 
     testWidgets('Should be removed all rows', (WidgetTester tester) async {
@@ -1403,7 +1400,7 @@ void main() {
 
       List<PlutoRow> rows = RowHelper.count(5, columns);
 
-      PlutoGridStateManager stateManager = PlutoGridStateManager(
+      PlutoGridStateManager stateManager = createStateManager(
         columns: columns,
         rows: rows,
         gridFocusNode: null,
@@ -1431,27 +1428,24 @@ void main() {
 
         List<PlutoRow> rows = RowHelper.count(5, columns);
 
-        final scroll = MockPlutoScrollController();
-
         when(scroll.verticalOffset).thenReturn(0);
 
-        PlutoGridStateManager stateManager = PlutoGridStateManager(
+        PlutoGridStateManager stateManager = createStateManager(
           columns: columns,
           rows: rows,
           gridFocusNode: null,
           scroll: scroll,
+          layout: const BoxConstraints(
+            maxWidth: 500,
+            maxHeight: 300,
+          ),
         );
-
-        stateManager.setLayout(const BoxConstraints(
-          maxWidth: 500,
-          maxHeight: 300,
-        ));
 
         stateManager.setGridGlobalOffset(const Offset(0.0, 0.0));
 
-        final listener = MockOnChangeListener();
+        final listener = MockMethods();
 
-        stateManager.addListener(listener.onChangeVoidNoParamListener);
+        stateManager.addListener(listener.noParamReturnVoid);
 
         // when
         final rowKey = rows.first.key;
@@ -1466,8 +1460,8 @@ void main() {
 
         // then
         expect(stateManager.rows.length, 5);
-        expect(stateManager.rows[1]!.key, rowKey);
-        verify(listener.onChangeVoidNoParamListener()).called(1);
+        expect(stateManager.rows[1].key, rowKey);
+        verify(listener.noParamReturnVoid()).called(1);
       },
     );
 
@@ -1481,27 +1475,24 @@ void main() {
 
         List<PlutoRow> rows = RowHelper.count(5, columns);
 
-        final scroll = MockPlutoScrollController();
-
         when(scroll.verticalOffset).thenReturn(0);
 
-        PlutoGridStateManager stateManager = PlutoGridStateManager(
+        PlutoGridStateManager stateManager = createStateManager(
           columns: columns,
           rows: rows,
           gridFocusNode: null,
           scroll: scroll,
+          layout: const BoxConstraints(
+            maxWidth: 500,
+            maxHeight: 300,
+          ),
         );
-
-        stateManager.setLayout(const BoxConstraints(
-          maxWidth: 500,
-          maxHeight: 300,
-        ));
 
         stateManager.setGridGlobalOffset(const Offset(0.0, 0.0));
 
-        final listener = MockOnChangeListener();
+        final listener = MockMethods();
 
-        stateManager.addListener(listener.onChangeVoidNoParamListener);
+        stateManager.addListener(listener.noParamReturnVoid);
 
         // when
         final rowKey = rows[2].key;
@@ -1516,8 +1507,8 @@ void main() {
 
         // then
         expect(stateManager.rows.length, 5);
-        expect(stateManager.rows[1]!.key, rowKey);
-        verify(listener.onChangeVoidNoParamListener()).called(1);
+        expect(stateManager.rows[1].key, rowKey);
+        verify(listener.noParamReturnVoid()).called(1);
       },
     );
 
@@ -1531,27 +1522,24 @@ void main() {
 
         List<PlutoRow> rows = RowHelper.count(5, columns);
 
-        final scroll = MockPlutoScrollController();
-
         when(scroll.verticalOffset).thenReturn(0);
 
-        PlutoGridStateManager stateManager = PlutoGridStateManager(
+        PlutoGridStateManager stateManager = createStateManager(
           columns: columns,
           rows: rows,
           gridFocusNode: null,
           scroll: scroll,
+          layout: const BoxConstraints(
+            maxWidth: 500,
+            maxHeight: 300,
+          ),
         );
-
-        stateManager.setLayout(const BoxConstraints(
-          maxWidth: 500,
-          maxHeight: 300,
-        ));
 
         stateManager.setGridGlobalOffset(const Offset(0.0, 0.0));
 
-        final listener = MockOnChangeListener();
+        final listener = MockMethods();
 
-        stateManager.addListener(listener.onChangeVoidNoParamListener);
+        stateManager.addListener(listener.noParamReturnVoid);
 
         // when
         final rowKey = rows.first.key;
@@ -1566,8 +1554,8 @@ void main() {
 
         // then
         expect(stateManager.rows.length, 5);
-        expect(stateManager.rows[4]!.key, rowKey);
-        verify(listener.onChangeVoidNoParamListener()).called(1);
+        expect(stateManager.rows[4].key, rowKey);
+        verify(listener.noParamReturnVoid()).called(1);
       },
     );
 
@@ -1581,30 +1569,27 @@ void main() {
 
         List<PlutoRow> rows = RowHelper.count(5, columns);
 
-        final scroll = MockPlutoScrollController();
-
         when(scroll.verticalOffset).thenReturn(0);
 
-        PlutoGridStateManager stateManager = PlutoGridStateManager(
+        PlutoGridStateManager stateManager = createStateManager(
           columns: columns,
           rows: rows,
           gridFocusNode: null,
           scroll: scroll,
+          layout: const BoxConstraints(
+            maxWidth: 500,
+            maxHeight: 300,
+          ),
         );
-
-        stateManager.setLayout(const BoxConstraints(
-          maxWidth: 500,
-          maxHeight: 300,
-        ));
 
         stateManager.setGridGlobalOffset(const Offset(0.0, 0.0));
 
-        final listener = MockOnChangeListener();
+        final listener = MockMethods();
 
-        stateManager.addListener(listener.onChangeVoidNoParamListener);
+        stateManager.addListener(listener.noParamReturnVoid);
 
         // when
-        final offset = -10.0;
+        const offset = -10.0;
 
         stateManager.moveRowsByOffset(
           [rows.first],
@@ -1613,7 +1598,7 @@ void main() {
 
         // then
         expect(stateManager.rows.length, 5);
-        verifyNever(listener.onChangeVoidNoParamListener());
+        verifyNever(listener.noParamReturnVoid());
       },
     );
 
@@ -1627,27 +1612,24 @@ void main() {
 
         List<PlutoRow> rows = RowHelper.count(5, columns);
 
-        final scroll = MockPlutoScrollController();
-
         when(scroll.verticalOffset).thenReturn(0);
 
-        PlutoGridStateManager stateManager = PlutoGridStateManager(
+        PlutoGridStateManager stateManager = createStateManager(
           columns: columns,
           rows: rows,
           gridFocusNode: null,
           scroll: scroll,
+          layout: const BoxConstraints(
+            maxWidth: 500,
+            maxHeight: 300,
+          ),
         );
-
-        stateManager.setLayout(const BoxConstraints(
-          maxWidth: 500,
-          maxHeight: 300,
-        ));
 
         stateManager.setGridGlobalOffset(const Offset(0.0, 0.0));
 
-        final listener = MockOnChangeListener();
+        final listener = MockMethods();
 
-        stateManager.addListener(listener.onChangeVoidNoParamListener);
+        stateManager.addListener(listener.noParamReturnVoid);
 
         // when
         // header + row0 ~ row4 + 1
@@ -1660,7 +1642,7 @@ void main() {
 
         // then
         expect(stateManager.rows.length, 5);
-        verifyNever(listener.onChangeVoidNoParamListener());
+        verifyNever(listener.noParamReturnVoid());
       },
     );
 
@@ -1674,29 +1656,26 @@ void main() {
 
         List<PlutoRow> rows = RowHelper.count(5, columns);
 
-        final scroll = MockPlutoScrollController();
-
         when(scroll.verticalOffset).thenReturn(0);
 
-        PlutoGridStateManager stateManager = PlutoGridStateManager(
+        PlutoGridStateManager stateManager = createStateManager(
           columns: columns,
           rows: rows,
           gridFocusNode: null,
           scroll: scroll,
           createHeader: (PlutoGridStateManager? stateManager) =>
               const Text('header'),
+          layout: const BoxConstraints(
+            maxWidth: 500,
+            maxHeight: 300,
+          ),
         );
-
-        stateManager.setLayout(const BoxConstraints(
-          maxWidth: 500,
-          maxHeight: 300,
-        ));
 
         stateManager.setGridGlobalOffset(const Offset(0.0, 0.0));
 
-        final listener = MockOnChangeListener();
+        final listener = MockMethods();
 
-        stateManager.addListener(listener.onChangeVoidNoParamListener);
+        stateManager.addListener(listener.noParamReturnVoid);
 
         // when
         final rowKey = rows[1].key;
@@ -1711,8 +1690,8 @@ void main() {
 
         // then
         expect(stateManager.rows.length, 5);
-        expect(stateManager.rows[0]!.key, rowKey);
-        verify(listener.onChangeVoidNoParamListener()).called(1);
+        expect(stateManager.rows[0].key, rowKey);
+        verify(listener.noParamReturnVoid()).called(1);
       },
     );
   });
@@ -1728,18 +1707,16 @@ void main() {
 
         List<PlutoRow> rows = RowHelper.count(5, columns);
 
-        final scroll = MockPlutoScrollController();
-
-        PlutoGridStateManager stateManager = PlutoGridStateManager(
+        PlutoGridStateManager stateManager = createStateManager(
           columns: columns,
           rows: rows,
           gridFocusNode: null,
           scroll: scroll,
         );
 
-        final listener = MockOnChangeListener();
+        final listener = MockMethods();
 
-        stateManager.addListener(listener.onChangeVoidNoParamListener);
+        stateManager.addListener(listener.noParamReturnVoid);
 
         // when
         final rowKey = rows.first.key;
@@ -1751,8 +1728,8 @@ void main() {
 
         // then
         expect(stateManager.rows.length, 5);
-        expect(stateManager.rows[1]!.key, rowKey);
-        verify(listener.onChangeVoidNoParamListener()).called(1);
+        expect(stateManager.rows[1].key, rowKey);
+        verify(listener.noParamReturnVoid()).called(1);
       },
     );
 
@@ -1766,18 +1743,16 @@ void main() {
 
         List<PlutoRow> rows = RowHelper.count(5, columns);
 
-        final scroll = MockPlutoScrollController();
-
-        PlutoGridStateManager stateManager = PlutoGridStateManager(
+        PlutoGridStateManager stateManager = createStateManager(
           columns: columns,
           rows: rows,
           gridFocusNode: null,
           scroll: scroll,
         );
 
-        final listener = MockOnChangeListener();
+        final listener = MockMethods();
 
-        stateManager.addListener(listener.onChangeVoidNoParamListener);
+        stateManager.addListener(listener.noParamReturnVoid);
 
         // when
         final rowKey = rows[2].key;
@@ -1789,8 +1764,8 @@ void main() {
 
         // then
         expect(stateManager.rows.length, 5);
-        expect(stateManager.rows[1]!.key, rowKey);
-        verify(listener.onChangeVoidNoParamListener()).called(1);
+        expect(stateManager.rows[1].key, rowKey);
+        verify(listener.noParamReturnVoid()).called(1);
       },
     );
 
@@ -1804,18 +1779,16 @@ void main() {
 
         List<PlutoRow> rows = RowHelper.count(2, columns);
 
-        final scroll = MockPlutoScrollController();
-
-        PlutoGridStateManager stateManager = PlutoGridStateManager(
+        PlutoGridStateManager stateManager = createStateManager(
           columns: columns,
           rows: rows,
           gridFocusNode: null,
           scroll: scroll,
         );
 
-        final listener = MockOnChangeListener();
+        final listener = MockMethods();
 
-        stateManager.addListener(listener.onChangeVoidNoParamListener);
+        stateManager.addListener(listener.noParamReturnVoid);
 
         // when
         final rowKey = rows[0].key;
@@ -1827,8 +1800,8 @@ void main() {
 
         // then
         expect(stateManager.rows.length, 2);
-        expect(stateManager.rows[1]!.key, rowKey);
-        verify(listener.onChangeVoidNoParamListener()).called(1);
+        expect(stateManager.rows[1].key, rowKey);
+        verify(listener.noParamReturnVoid()).called(1);
       },
     );
   });
@@ -1843,24 +1816,24 @@ void main() {
 
         List<PlutoRow> rows = [...RowHelper.count(10, columns)];
 
-        PlutoGridStateManager stateManager = PlutoGridStateManager(
+        PlutoGridStateManager stateManager = createStateManager(
           columns: columns,
           rows: rows,
           gridFocusNode: null,
           scroll: null,
         );
 
-        final listener = MockOnChangeListener();
+        final listener = MockMethods();
 
-        stateManager.addListener(listener.onChangeVoidNoParamListener);
+        stateManager.addListener(listener.noParamReturnVoid);
 
         // when
         stateManager.toggleAllRowChecked(true);
 
         // then
         expect(
-            stateManager.rows.where((element) => element!.checked!).length, 10);
-        verify(listener.onChangeVoidNoParamListener()).called(1);
+            stateManager.rows.where((element) => element.checked!).length, 10);
+        verify(listener.noParamReturnVoid()).called(1);
       },
     );
 
@@ -1873,24 +1846,24 @@ void main() {
 
         List<PlutoRow> rows = [...RowHelper.count(10, columns)];
 
-        PlutoGridStateManager stateManager = PlutoGridStateManager(
+        PlutoGridStateManager stateManager = createStateManager(
           columns: columns,
           rows: rows,
           gridFocusNode: null,
           scroll: null,
         );
 
-        final listener = MockOnChangeListener();
+        final listener = MockMethods();
 
-        stateManager.addListener(listener.onChangeVoidNoParamListener);
+        stateManager.addListener(listener.noParamReturnVoid);
 
         // when
         stateManager.toggleAllRowChecked(false);
 
         // then
-        expect(stateManager.rows.where((element) => !element!.checked!).length,
-            10);
-        verify(listener.onChangeVoidNoParamListener()).called(1);
+        expect(
+            stateManager.rows.where((element) => !element.checked!).length, 10);
+        verify(listener.noParamReturnVoid()).called(1);
       },
     );
 
@@ -1903,24 +1876,24 @@ void main() {
 
         List<PlutoRow> rows = [...RowHelper.count(10, columns)];
 
-        PlutoGridStateManager stateManager = PlutoGridStateManager(
+        PlutoGridStateManager stateManager = createStateManager(
           columns: columns,
           rows: rows,
           gridFocusNode: null,
           scroll: null,
         );
 
-        final listener = MockOnChangeListener();
+        final listener = MockMethods();
 
-        stateManager.addListener(listener.onChangeVoidNoParamListener);
+        stateManager.addListener(listener.noParamReturnVoid);
 
         // when
         stateManager.toggleAllRowChecked(true, notify: false);
 
         // then
         expect(
-            stateManager.rows.where((element) => element!.checked!).length, 10);
-        verifyNever(listener.onChangeVoidNoParamListener());
+            stateManager.rows.where((element) => element.checked!).length, 10);
+        verifyNever(listener.noParamReturnVoid());
       },
     );
   });

@@ -4,11 +4,6 @@ abstract class IKeyboardState {
   /// Currently pressed key
   PlutoGridKeyPressed get keyPressed;
 
-  /// Set the current pressed key state.
-  void setKeyPressed(PlutoGridKeyPressed keyPressed);
-
-  void resetKeyPressed();
-
   /// The index position of the cell to move in that direction in the current cell.
   PlutoGridCellPosition cellPositionToMove(
     PlutoGridCellPosition cellPosition,
@@ -63,18 +58,12 @@ abstract class IKeyboardState {
 }
 
 mixin KeyboardState implements IPlutoGridState {
+  final PlutoGridKeyPressed _keyPressed = PlutoGridKeyPressed();
+
+  @override
   PlutoGridKeyPressed get keyPressed => _keyPressed;
 
-  PlutoGridKeyPressed _keyPressed = PlutoGridKeyPressed();
-
-  void setKeyPressed(PlutoGridKeyPressed keyPressed) {
-    _keyPressed = keyPressed;
-  }
-
-  void resetKeyPressed() {
-    _keyPressed = PlutoGridKeyPressed();
-  }
-
+  @override
   PlutoGridCellPosition cellPositionToMove(
     PlutoGridCellPosition? cellPosition,
     PlutoMoveDirection direction,
@@ -105,6 +94,7 @@ mixin KeyboardState implements IPlutoGridState {
     }
   }
 
+  @override
   void moveCurrentCell(
     PlutoMoveDirection direction, {
     bool force = false,
@@ -115,16 +105,19 @@ mixin KeyboardState implements IPlutoGridState {
     // @formatter:off
     if (!force && isEditing && direction.horizontal) {
       // Select type column can be moved left or right even in edit state
-      if (currentColumn?.type?.isSelect == true) {
+      if (currentColumn?.type.isSelect == true) {
       }
       // Date type column can be moved left or right even in edit state
-      else if (currentColumn?.type?.isDate == true) {
+      else if (currentColumn?.type.isDate == true) {
       }
       // Time type column can be moved left or right even in edit state
-      else if (currentColumn?.type?.isTime == true) {
+      else if (currentColumn?.type.isTime == true) {
+      }
+      // Currency type column can be moved left or right even in edit state
+      else if (currentColumn?.type.isCurrency == true) {
       }
       // Read only type column can be moved left or right even in edit state
-      else if (currentColumn?.type?.readOnly == true) {
+      else if (currentColumn?.readOnly == true) {
       }
       // Unable to move left and right in other modified states
       else {
@@ -135,7 +128,7 @@ mixin KeyboardState implements IPlutoGridState {
 
     final cellPosition = currentCellPosition;
 
-    if (canNotMoveCell(cellPosition, direction)) {
+    if (cellPosition != null && canNotMoveCell(cellPosition, direction)) {
       eventManager!.addEvent(
         PlutoGridCannotMoveCurrentCellEvent(
           cellPosition: cellPosition,
@@ -152,9 +145,10 @@ mixin KeyboardState implements IPlutoGridState {
     );
 
     setCurrentCell(
-        refRows![toMove.rowIdx!]!.cells[refColumns![toMove.columnIdx!].field],
-        toMove.rowIdx,
-        notify: notify);
+      refRows[toMove.rowIdx!].cells[refColumns[toMove.columnIdx!].field],
+      toMove.rowIdx,
+      notify: notify,
+    );
 
     if (direction.horizontal) {
       moveScrollByColumn(direction, cellPosition!.columnIdx);
@@ -164,6 +158,7 @@ mixin KeyboardState implements IPlutoGridState {
     return;
   }
 
+  @override
   void moveCurrentCellToEdgeOfColumns(
     PlutoMoveDirection direction, {
     bool force = false,
@@ -186,19 +181,20 @@ mixin KeyboardState implements IPlutoGridState {
     final int columnIdx =
         direction.isLeft ? columnIndexes.first : columnIndexes.last;
 
-    final column = refColumns![columnIdx];
+    final column = refColumns[columnIdx];
 
     final cellToMove = currentRow!.cells[column.field];
 
     setCurrentCell(cellToMove, currentRowIdx, notify: notify);
 
-    if (!showFrozenColumn! || column.frozen.isFrozen != true) {
+    if (!showFrozenColumn || column.frozen.isFrozen != true) {
       direction.isLeft
-          ? scroll!.horizontal!.jumpTo(0)
-          : scroll!.horizontal!.jumpTo(scroll!.maxScrollHorizontal);
+          ? scroll.horizontal!.jumpTo(0)
+          : scroll.horizontal!.jumpTo(scroll.maxScrollHorizontal);
     }
   }
 
+  @override
   void moveCurrentCellToEdgeOfRows(
     PlutoMoveDirection direction, {
     bool force = false,
@@ -214,17 +210,18 @@ mixin KeyboardState implements IPlutoGridState {
 
     final field = currentColumnField ?? columns.first.field;
 
-    final int rowIdx = direction.isUp ? 0 : refRows!.length - 1;
+    final int rowIdx = direction.isUp ? 0 : refRows.length - 1;
 
-    final cellToMove = refRows![rowIdx]!.cells[field];
+    final cellToMove = refRows[rowIdx].cells[field];
 
     setCurrentCell(cellToMove, rowIdx, notify: notify);
 
     direction.isUp
-        ? scroll!.vertical!.jumpTo(0)
-        : scroll!.vertical!.jumpTo(scroll!.maxScrollVertical);
+        ? scroll.vertical!.jumpTo(0)
+        : scroll.vertical!.jumpTo(scroll.maxScrollVertical);
   }
 
+  @override
   void moveCurrentCellByRowIdx(
     int rowIdx,
     PlutoMoveDirection direction, {
@@ -238,19 +235,20 @@ mixin KeyboardState implements IPlutoGridState {
       rowIdx = 0;
     }
 
-    if (rowIdx > refRows!.length - 1) {
-      rowIdx = refRows!.length - 1;
+    if (rowIdx > refRows.length - 1) {
+      rowIdx = refRows.length - 1;
     }
 
-    final field = currentColumnField ?? refColumns!.first.field;
+    final field = currentColumnField ?? refColumns.first.field;
 
-    final cellToMove = refRows![rowIdx]!.cells[field];
+    final cellToMove = refRows[rowIdx].cells[field];
 
     setCurrentCell(cellToMove, rowIdx, notify: notify);
 
     moveScrollByRow(direction, rowIdx - direction.offset);
   }
 
+  @override
   void moveSelectingCell(PlutoMoveDirection direction) {
     final PlutoGridCellPosition? cellPosition =
         currentSelectingPosition ?? currentCellPosition;
@@ -275,6 +273,7 @@ mixin KeyboardState implements IPlutoGridState {
     }
   }
 
+  @override
   void moveSelectingCellToEdgeOfColumns(
     PlutoMoveDirection direction, {
     bool force = false,
@@ -292,7 +291,7 @@ mixin KeyboardState implements IPlutoGridState {
       return;
     }
 
-    final int columnIdx = direction.isLeft ? 0 : refColumns!.length - 1;
+    final int columnIdx = direction.isLeft ? 0 : refColumns.length - 1;
 
     final int? rowIdx = hasCurrentSelectingPosition
         ? currentSelectingPosition!.rowIdx
@@ -307,10 +306,11 @@ mixin KeyboardState implements IPlutoGridState {
     );
 
     direction.isLeft
-        ? scroll!.horizontal!.jumpTo(0)
-        : scroll!.horizontal!.jumpTo(scroll!.maxScrollHorizontal);
+        ? scroll.horizontal!.jumpTo(0)
+        : scroll.horizontal!.jumpTo(scroll.maxScrollHorizontal);
   }
 
+  @override
   void moveSelectingCellToEdgeOfRows(
     PlutoMoveDirection direction, {
     bool force = false,
@@ -332,7 +332,7 @@ mixin KeyboardState implements IPlutoGridState {
         ? currentSelectingPosition!.columnIdx
         : currentCellPosition!.columnIdx;
 
-    final int rowIdx = direction.isUp ? 0 : refRows!.length - 1;
+    final int rowIdx = direction.isUp ? 0 : refRows.length - 1;
 
     setCurrentSelectingPosition(
       cellPosition: PlutoGridCellPosition(
@@ -343,10 +343,11 @@ mixin KeyboardState implements IPlutoGridState {
     );
 
     direction.isUp
-        ? scroll!.vertical!.jumpTo(0)
-        : scroll!.vertical!.jumpTo(scroll!.maxScrollVertical);
+        ? scroll.vertical!.jumpTo(0)
+        : scroll.vertical!.jumpTo(scroll.maxScrollVertical);
   }
 
+  @override
   void moveSelectingCellByRowIdx(
     int rowIdx,
     PlutoMoveDirection direction, {
@@ -356,8 +357,8 @@ mixin KeyboardState implements IPlutoGridState {
       rowIdx = 0;
     }
 
-    if (rowIdx > refRows!.length - 1) {
-      rowIdx = refRows!.length - 1;
+    if (rowIdx > refRows.length - 1) {
+      rowIdx = refRows.length - 1;
     }
 
     if (currentCell == null) {

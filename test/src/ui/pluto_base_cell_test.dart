@@ -1,30 +1,43 @@
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 import 'package:pluto_grid/pluto_grid.dart';
+import 'package:pluto_grid/src/ui/ui.dart';
+import 'package:rxdart/rxdart.dart';
 
 import '../../helper/pluto_widget_test_helper.dart';
 import '../../helper/row_helper.dart';
 import '../../matcher/pluto_object_matcher.dart';
-import 'pluto_base_cell_test.mocks.dart';
+import '../../mock/shared_mocks.mocks.dart';
 
-@GenerateMocks([], customMocks: [
-  MockSpec<PlutoGridStateManager>(returnNullOnMissingStub: true),
-  MockSpec<PlutoGridEventManager>(returnNullOnMissingStub: true),
-])
 void main() {
   late MockPlutoGridStateManager stateManager;
   MockPlutoGridEventManager? eventManager;
+  PublishSubject<PlutoNotifierEvent> streamNotifier;
 
   setUp(() {
+    const configuration = PlutoGridConfiguration();
     stateManager = MockPlutoGridStateManager();
     eventManager = MockPlutoGridEventManager();
+    streamNotifier = PublishSubject<PlutoNotifierEvent>();
+    when(stateManager.streamNotifier).thenAnswer((_) => streamNotifier);
     when(stateManager.eventManager).thenReturn(eventManager);
-    when(stateManager.configuration).thenReturn(PlutoGridConfiguration());
+    when(stateManager.configuration).thenReturn(configuration);
+    when(stateManager.style).thenReturn(configuration.style);
+    when(stateManager.keyPressed).thenReturn(PlutoGridKeyPressed());
+    when(stateManager.rowHeight).thenReturn(
+      stateManager.configuration.style.rowHeight,
+    );
+    when(stateManager.columnHeight).thenReturn(
+      stateManager.configuration.style.columnHeight,
+    );
+    when(stateManager.columnFilterHeight).thenReturn(
+      stateManager.configuration.style.columnHeight,
+    );
     when(stateManager.rowTotalHeight).thenReturn(
-      RowHelper.resolveRowTotalHeight(stateManager.configuration!.rowHeight),
+      RowHelper.resolveRowTotalHeight(
+        stateManager.configuration.style.rowHeight,
+      ),
     );
     when(stateManager.localeText).thenReturn(const PlutoGridLocaleText());
     when(stateManager.gridFocusNode).thenReturn(FocusNode());
@@ -33,7 +46,28 @@ void main() {
     when(stateManager.selectingMode).thenReturn(PlutoGridSelectingMode.cell);
     when(stateManager.canRowDrag).thenReturn(true);
     when(stateManager.isSelectedCell(any, any, any)).thenReturn(false);
+    when(stateManager.enabledRowGroups).thenReturn(false);
+    when(stateManager.rowGroupDelegate).thenReturn(null);
   });
+
+  Widget buildApp({
+    required PlutoCell cell,
+    required PlutoColumn column,
+    required PlutoRow row,
+    required int rowIdx,
+  }) {
+    return MaterialApp(
+      home: Material(
+        child: PlutoBaseCell(
+          cell: cell,
+          column: column,
+          rowIdx: rowIdx,
+          row: row,
+          stateManager: stateManager,
+        ),
+      ),
+    );
+  }
 
   testWidgets(
       'WHEN If it is not CurrentCell or not in Editing state'
@@ -47,7 +81,13 @@ void main() {
       type: PlutoColumnType.text(),
     );
 
-    final rowIdx = 0;
+    final PlutoRow row = PlutoRow(
+      cells: {
+        'header': cell,
+      },
+    );
+
+    const rowIdx = 0;
 
     // when
     when(stateManager.isCurrentCell(any)).thenReturn(false);
@@ -55,15 +95,11 @@ void main() {
     when(stateManager.isEditing).thenReturn(false);
 
     await tester.pumpWidget(
-      MaterialApp(
-        home: Material(
-          child: PlutoBaseCell(
-            stateManager: stateManager,
-            cell: cell,
-            column: column,
-            rowIdx: rowIdx,
-          ),
-        ),
+      buildApp(
+        cell: cell,
+        column: column,
+        rowIdx: rowIdx,
+        row: row,
       ),
     );
 
@@ -88,22 +124,24 @@ void main() {
       type: PlutoColumnType.text(),
     );
 
-    final rowIdx = 0;
+    final PlutoRow row = PlutoRow(
+      cells: {
+        'header': cell,
+      },
+    );
+
+    const rowIdx = 0;
 
     // when
     when(stateManager.isCurrentCell(any)).thenReturn(true);
     when(stateManager.isEditing).thenReturn(false);
 
     await tester.pumpWidget(
-      MaterialApp(
-        home: Material(
-          child: PlutoBaseCell(
-            stateManager: stateManager,
-            cell: cell,
-            column: column,
-            rowIdx: rowIdx,
-          ),
-        ),
+      buildApp(
+        cell: cell,
+        column: column,
+        rowIdx: rowIdx,
+        row: row,
       ),
     );
 
@@ -128,22 +166,24 @@ void main() {
       type: PlutoColumnType.text(),
     );
 
-    final rowIdx = 0;
+    final PlutoRow row = PlutoRow(
+      cells: {
+        'header': cell,
+      },
+    );
+
+    const rowIdx = 0;
 
     // when
     when(stateManager.isCurrentCell(any)).thenReturn(true);
     when(stateManager.isEditing).thenReturn(true);
 
     await tester.pumpWidget(
-      MaterialApp(
-        home: Material(
-          child: PlutoBaseCell(
-            stateManager: stateManager,
-            cell: cell,
-            column: column,
-            rowIdx: rowIdx,
-          ),
-        ),
+      buildApp(
+        cell: cell,
+        column: column,
+        rowIdx: rowIdx,
+        row: row,
       ),
     );
 
@@ -168,22 +208,24 @@ void main() {
       type: PlutoColumnType.time(),
     );
 
-    final rowIdx = 0;
+    final PlutoRow row = PlutoRow(
+      cells: {
+        'header': cell,
+      },
+    );
+
+    const rowIdx = 0;
 
     // when
     when(stateManager.isCurrentCell(any)).thenReturn(true);
     when(stateManager.isEditing).thenReturn(true);
 
     await tester.pumpWidget(
-      MaterialApp(
-        home: Material(
-          child: PlutoBaseCell(
-            stateManager: stateManager,
-            cell: cell,
-            column: column,
-            rowIdx: rowIdx,
-          ),
-        ),
+      buildApp(
+        cell: cell,
+        column: column,
+        rowIdx: rowIdx,
+        row: row,
       ),
     );
 
@@ -208,22 +250,24 @@ void main() {
       type: PlutoColumnType.date(),
     );
 
-    final rowIdx = 0;
+    final PlutoRow row = PlutoRow(
+      cells: {
+        'header': cell,
+      },
+    );
+
+    const rowIdx = 0;
 
     // when
     when(stateManager.isCurrentCell(any)).thenReturn(true);
     when(stateManager.isEditing).thenReturn(true);
 
     await tester.pumpWidget(
-      MaterialApp(
-        home: Material(
-          child: PlutoBaseCell(
-            stateManager: stateManager,
-            cell: cell,
-            column: column,
-            rowIdx: rowIdx,
-          ),
-        ),
+      buildApp(
+        cell: cell,
+        column: column,
+        rowIdx: rowIdx,
+        row: row,
       ),
     );
 
@@ -249,22 +293,24 @@ void main() {
       type: PlutoColumnType.number(),
     );
 
-    final rowIdx = 0;
+    final PlutoRow row = PlutoRow(
+      cells: {
+        'header': cell,
+      },
+    );
+
+    const rowIdx = 0;
 
     // when
     when(stateManager.isCurrentCell(any)).thenReturn(true);
     when(stateManager.isEditing).thenReturn(true);
 
     await tester.pumpWidget(
-      MaterialApp(
-        home: Material(
-          child: PlutoBaseCell(
-            stateManager: stateManager,
-            cell: cell,
-            column: column,
-            rowIdx: rowIdx,
-          ),
-        ),
+      buildApp(
+        cell: cell,
+        column: column,
+        rowIdx: rowIdx,
+        row: row,
       ),
     );
 
@@ -290,22 +336,24 @@ void main() {
       type: PlutoColumnType.select(<String>['one', 'two', 'three']),
     );
 
-    final rowIdx = 0;
+    final PlutoRow row = PlutoRow(
+      cells: {
+        'header': cell,
+      },
+    );
+
+    const rowIdx = 0;
 
     // when
     when(stateManager.isCurrentCell(any)).thenReturn(true);
     when(stateManager.isEditing).thenReturn(true);
 
     await tester.pumpWidget(
-      MaterialApp(
-        home: Material(
-          child: PlutoBaseCell(
-            stateManager: stateManager,
-            cell: cell,
-            column: column,
-            rowIdx: rowIdx,
-          ),
-        ),
+      buildApp(
+        cell: cell,
+        column: column,
+        rowIdx: rowIdx,
+        row: row,
       ),
     );
 
@@ -316,41 +364,6 @@ void main() {
     expect(find.byType(PlutoDateCell), findsNothing);
     expect(find.byType(PlutoTimeCell), findsNothing);
     expect(find.byType(PlutoTextCell), findsNothing);
-  });
-
-  testWidgets(
-      'WHEN If there is no type'
-      'THEN An exception should be thrown.', (WidgetTester tester) async {
-    // given
-    final PlutoCell cell = PlutoCell(value: 'one');
-
-    final PlutoColumn column = PlutoColumn(
-      title: 'header',
-      field: 'header',
-      type: null,
-    );
-
-    final rowIdx = 0;
-
-    // when
-    when(stateManager.isCurrentCell(any)).thenReturn(true);
-    when(stateManager.isEditing).thenReturn(true);
-
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Material(
-          child: PlutoBaseCell(
-            stateManager: stateManager,
-            cell: cell,
-            column: column,
-            rowIdx: rowIdx,
-          ),
-        ),
-      ),
-    );
-
-    // then
-    expect(tester.takeException(), isInstanceOf<Error>());
   });
 
   testWidgets(
@@ -365,7 +378,13 @@ void main() {
         type: PlutoColumnType.text(),
       );
 
-      final rowIdx = 0;
+      final PlutoRow row = PlutoRow(
+        cells: {
+          'header': cell,
+        },
+      );
+
+      const rowIdx = 0;
 
       // when
       when(stateManager.isCurrentCell(any)).thenReturn(false);
@@ -373,15 +392,11 @@ void main() {
       when(stateManager.isSelectedCell(any, any, any)).thenReturn(false);
 
       await tester.pumpWidget(
-        MaterialApp(
-          home: Material(
-            child: PlutoBaseCell(
-              stateManager: stateManager,
-              cell: cell,
-              column: column,
-              rowIdx: rowIdx,
-            ),
-          ),
+        buildApp(
+          cell: cell,
+          column: column,
+          rowIdx: rowIdx,
+          row: row,
         ),
       );
 
@@ -392,8 +407,8 @@ void main() {
       verify(eventManager!.addEvent(
         argThat(PlutoObjectMatcher<PlutoGridCellGestureEvent>(rule: (object) {
           return object.gestureType.isOnTapUp &&
-              object.cell!.key == cell.key &&
-              object.column!.key == column.key &&
+              object.cell.key == cell.key &&
+              object.column.key == column.key &&
               object.rowIdx == rowIdx;
         })),
       )).called(1);
@@ -412,7 +427,13 @@ void main() {
         type: PlutoColumnType.text(),
       );
 
-      final rowIdx = 0;
+      final PlutoRow row = PlutoRow(
+        cells: {
+          'header': cell,
+        },
+      );
+
+      const rowIdx = 0;
 
       // when
       when(stateManager.isCurrentCell(any)).thenReturn(false);
@@ -420,15 +441,11 @@ void main() {
       when(stateManager.isSelectedCell(any, any, any)).thenReturn(false);
 
       await tester.pumpWidget(
-        MaterialApp(
-          home: Material(
-            child: PlutoBaseCell(
-              stateManager: stateManager,
-              cell: cell,
-              column: column,
-              rowIdx: rowIdx,
-            ),
-          ),
+        buildApp(
+          cell: cell,
+          column: column,
+          rowIdx: rowIdx,
+          row: row,
         ),
       );
 
@@ -439,8 +456,8 @@ void main() {
       verify(eventManager!.addEvent(
         argThat(PlutoObjectMatcher<PlutoGridCellGestureEvent>(rule: (object) {
           return object.gestureType.isOnLongPressStart &&
-              object.cell!.key == cell.key &&
-              object.column!.key == column.key &&
+              object.cell.key == cell.key &&
+              object.column.key == column.key &&
               object.rowIdx == rowIdx;
         })),
       )).called(1);
@@ -460,7 +477,13 @@ void main() {
         type: PlutoColumnType.text(),
       );
 
-      final rowIdx = 0;
+      final PlutoRow row = PlutoRow(
+        cells: {
+          'header': cell,
+        },
+      );
+
+      const rowIdx = 0;
 
       when(stateManager.isCurrentCell(any)).thenReturn(true);
       when(stateManager.isEditing).thenReturn(false);
@@ -471,15 +494,11 @@ void main() {
 
       // when
       await tester.pumpWidget(
-        MaterialApp(
-          home: Material(
-            child: PlutoBaseCell(
-              stateManager: stateManager,
-              cell: cell,
-              column: column,
-              rowIdx: rowIdx,
-            ),
-          ),
+        buildApp(
+          cell: cell,
+          column: column,
+          rowIdx: rowIdx,
+          row: row,
         ),
       );
 
@@ -500,8 +519,8 @@ void main() {
       verify(eventManager!.addEvent(
         argThat(PlutoObjectMatcher<PlutoGridCellGestureEvent>(rule: (object) {
           return object.gestureType.isOnLongPressMoveUpdate &&
-              object.cell!.key == cell.key &&
-              object.column!.key == column.key &&
+              object.cell.key == cell.key &&
+              object.column.key == column.key &&
               object.rowIdx == rowIdx;
         })),
       )).called(1);
@@ -515,7 +534,7 @@ void main() {
 
     int rowIdx;
 
-    final aCell = ({
+    aCell({
       bool isCurrentCell = true,
       bool isEditing = false,
       bool readOnly = false,
@@ -532,30 +551,31 @@ void main() {
         column = PlutoColumn(
           title: 'header',
           field: 'header',
-          type: PlutoColumnType.text(
-            readOnly: readOnly,
-          ),
+          readOnly: readOnly,
+          type: PlutoColumnType.text(),
           enableEditingMode: enableEditingMode,
+        );
+
+        final PlutoRow row = PlutoRow(
+          cells: {
+            'header': cell,
+          },
         );
 
         rowIdx = 0;
 
         await tester.pumpWidget(
-          MaterialApp(
-            home: Material(
-              child: PlutoBaseCell(
-                stateManager: stateManager,
-                cell: cell,
-                column: column,
-                rowIdx: rowIdx,
-              ),
-            ),
+          buildApp(
+            cell: cell,
+            column: column,
+            rowIdx: rowIdx,
+            row: row,
           ),
         );
 
         await tester.pumpAndSettle(const Duration(seconds: 1));
       });
-    };
+    }
 
     aCell(isCurrentCell: false).test(
       'currentCell 이 아니면, DefaultCellWidget 이 렌더링 되어야 한다.',
@@ -594,7 +614,7 @@ void main() {
 
     int rowIdx;
 
-    final aCellWithConfiguration = (
+    aCellWithConfiguration(
       PlutoGridConfiguration configuration, {
       bool isCurrentCell = true,
       bool isSelectedCell = false,
@@ -604,6 +624,7 @@ void main() {
         when(stateManager.isCurrentCell(any)).thenReturn(isCurrentCell);
         when(stateManager.isSelectedCell(any, any, any))
             .thenReturn(isSelectedCell);
+        when(stateManager.style).thenReturn(configuration.style);
         when(stateManager.hasFocus).thenReturn(true);
         when(stateManager.isEditing).thenReturn(true);
 
@@ -612,9 +633,14 @@ void main() {
         column = PlutoColumn(
           title: 'header',
           field: 'header',
-          type: PlutoColumnType.text(
-            readOnly: readOnly,
-          ),
+          readOnly: readOnly,
+          type: PlutoColumnType.text(),
+        );
+
+        final PlutoRow row = PlutoRow(
+          cells: {
+            'header': cell,
+          },
         );
 
         rowIdx = 0;
@@ -622,52 +648,55 @@ void main() {
         when(stateManager.configuration).thenReturn(configuration);
 
         await tester.pumpWidget(
-          MaterialApp(
-            home: Material(
-              child: PlutoBaseCell(
-                stateManager: stateManager,
-                cell: cell,
-                column: column,
-                rowIdx: rowIdx,
-              ),
-            ),
+          buildApp(
+            cell: cell,
+            column: column!,
+            rowIdx: rowIdx,
+            row: row,
           ),
         );
 
         await tester.pumpAndSettle(const Duration(seconds: 1));
       });
-    };
+    }
 
     aCellWithConfiguration(
-      PlutoGridConfiguration(
-        enableColumnBorder: false,
-        borderColor: Colors.deepOrange,
+      const PlutoGridConfiguration(
+        style: PlutoGridStyleConfig(
+          enableCellBorderVertical: false,
+          borderColor: Colors.deepOrange,
+        ),
       ),
       readOnly: true,
     ).test(
       'if readOnly is true, should be set the color to cellColorInReadOnlyState.',
       (tester) async {
-        expect(column!.type!.readOnly, true);
+        expect(column!.readOnly, true);
 
         final target = find.descendant(
           of: find.byType(GestureDetector),
-          matching: find.byType(Container),
+          matching: find.byType(DecoratedBox),
         );
 
-        final container = target.evaluate().first.widget as Container;
+        final container = target.evaluate().first.widget as DecoratedBox;
 
         final BoxDecoration decoration = container.decoration as BoxDecoration;
 
         final Color? color = decoration.color;
 
-        expect(color, stateManager.configuration!.cellColorInReadOnlyState);
+        expect(
+          color,
+          stateManager.configuration.style.cellColorInReadOnlyState,
+        );
       },
     );
 
     aCellWithConfiguration(
-      PlutoGridConfiguration(
-        enableColumnBorder: true,
-        borderColor: Colors.deepOrange,
+      const PlutoGridConfiguration(
+        style: PlutoGridStyleConfig(
+          enableCellBorderVertical: true,
+          borderColor: Colors.deepOrange,
+        ),
       ),
       isCurrentCell: false,
       isSelectedCell: false,
@@ -678,23 +707,28 @@ void main() {
       (tester) async {
         final target = find.descendant(
           of: find.byType(GestureDetector),
-          matching: find.byType(Container),
+          matching: find.byType(DecoratedBox),
         );
 
-        final container = target.evaluate().first.widget as Container;
+        final container = target.evaluate().first.widget as DecoratedBox;
 
         final BoxDecoration decoration = container.decoration as BoxDecoration;
 
-        final Border border = decoration.border as Border;
+        final BorderDirectional border = decoration.border as BorderDirectional;
 
-        expect(border.right.color, stateManager.configuration!.borderColor);
+        expect(
+          border.end.color,
+          stateManager.configuration.style.borderColor,
+        );
       },
     );
 
     aCellWithConfiguration(
-      PlutoGridConfiguration(
-        enableColumnBorder: false,
-        borderColor: Colors.deepOrange,
+      const PlutoGridConfiguration(
+        style: PlutoGridStyleConfig(
+          enableCellBorderVertical: false,
+          borderColor: Colors.deepOrange,
+        ),
       ),
       isCurrentCell: false,
       isSelectedCell: false,
@@ -705,14 +739,15 @@ void main() {
       (tester) async {
         final target = find.descendant(
           of: find.byType(GestureDetector),
-          matching: find.byType(Container),
+          matching: find.byType(DecoratedBox),
         );
 
-        final container = target.evaluate().first.widget as Container;
+        final container = target.evaluate().first.widget as DecoratedBox;
 
         final BoxDecoration decoration = container.decoration as BoxDecoration;
 
-        final Border? border = decoration.border as Border?;
+        final BorderDirectional? border =
+            decoration.border as BorderDirectional?;
 
         expect(border, isNull);
       },

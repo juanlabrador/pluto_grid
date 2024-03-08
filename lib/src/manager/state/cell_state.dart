@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart' as intl;
 import 'package:pluto_grid/pluto_grid.dart';
 
 abstract class ICellState {
@@ -35,27 +34,31 @@ abstract class ICellState {
 
   /// Whether it is possible to move in the [direction] from [cellPosition].
   bool canMoveCell(
-      PlutoGridCellPosition cellPosition, PlutoMoveDirection direction);
+    PlutoGridCellPosition cellPosition,
+    PlutoMoveDirection direction,
+  );
 
   bool canNotMoveCell(
-      PlutoGridCellPosition? cellPosition, PlutoMoveDirection direction);
+    PlutoGridCellPosition? cellPosition,
+    PlutoMoveDirection direction,
+  );
 
   /// Whether the cell is in a mutable state
   bool canChangeCellValue({
-    PlutoColumn? column,
+    required PlutoCell cell,
     dynamic newValue,
     dynamic oldValue,
   });
 
   bool canNotChangeCellValue({
-    PlutoColumn? column,
+    required PlutoCell cell,
     dynamic newValue,
     dynamic oldValue,
   });
 
   /// Filter on cell value change
   dynamic filteredCellValue({
-    PlutoColumn? column,
+    required PlutoColumn column,
     dynamic newValue,
     dynamic oldValue,
   });
@@ -66,32 +69,40 @@ abstract class ICellState {
   bool isInvalidCellPosition(PlutoGridCellPosition? cellPosition);
 }
 
-mixin CellState implements IPlutoGridState {
-  PlutoCell? get currentCell => _currentCell;
-
+class _State {
   PlutoCell? _currentCell;
 
-  PlutoGridCellPosition? get currentCellPosition => _currentCellPosition;
-
   PlutoGridCellPosition? _currentCellPosition;
+}
 
+mixin CellState implements IPlutoGridState {
+  final _State _state = _State();
+
+  @override
+  PlutoCell? get currentCell => _state._currentCell;
+
+  @override
+  PlutoGridCellPosition? get currentCellPosition => _state._currentCellPosition;
+
+  @override
   PlutoCell? get firstCell {
-    if (refRows == null || refRows!.isEmpty) {
+    if (refRows.isEmpty || refColumns.isEmpty) {
       return null;
     }
 
     final columnIndexes = columnIndexesByShowFrozen;
 
-    final columnField = refColumns![columnIndexes.first].field;
+    final columnField = refColumns[columnIndexes.first].field;
 
-    return refRows!.first!.cells[columnField];
+    return refRows.first.cells[columnField];
   }
 
+  @override
   void setCurrentCellPosition(
     PlutoGridCellPosition? cellPosition, {
     bool notify = true,
   }) {
-    if (_currentCellPosition == cellPosition) {
+    if (currentCellPosition == cellPosition) {
       return;
     }
 
@@ -101,36 +112,34 @@ mixin CellState implements IPlutoGridState {
       return;
     }
 
-    _currentCellPosition = cellPosition;
+    _state._currentCellPosition = cellPosition;
 
-    if (notify) {
-      notifyListeners();
-    }
+    notifyListeners(notify, setCurrentCellPosition.hashCode);
   }
 
+  @override
   void updateCurrentCellPosition({bool notify = true}) {
-    if (_currentCell == null) {
+    if (currentCell == null) {
       return;
     }
 
-    resetShowFrozenColumn(notify: false);
-
     setCurrentCellPosition(
-      cellPositionByCellKey(_currentCell!.key),
+      cellPositionByCellKey(currentCell!.key),
       notify: false,
     );
 
-    if (notify) {
-      notifyListeners();
-    }
+    notifyListeners(notify, updateCurrentCellPosition.hashCode);
   }
 
+  @override
   PlutoGridCellPosition? cellPositionByCellKey(Key? cellKey) {
     if (cellKey == null) {
       return null;
     }
 
-    for (var rowIdx = 0; rowIdx < refRows!.length; rowIdx += 1) {
+    final length = refRows.length;
+
+    for (int rowIdx = 0; rowIdx < length; rowIdx += 1) {
       final columnIdx = columnIdxByCellKeyAndRowIdx(cellKey, rowIdx);
 
       if (columnIdx != null) {
@@ -141,17 +150,19 @@ mixin CellState implements IPlutoGridState {
     return null;
   }
 
+  @override
   int? columnIdxByCellKeyAndRowIdx(Key cellKey, int rowIdx) {
-    if (rowIdx < 0 || refRows == null || rowIdx >= refRows!.length) {
+    if (rowIdx < 0 || rowIdx >= refRows.length) {
       return null;
     }
 
     final columnIndexes = columnIndexesByShowFrozen;
+    final length = columnIndexes.length;
 
-    for (var columnIdx = 0; columnIdx < columnIndexes.length; columnIdx += 1) {
-      final field = refColumns![columnIndexes[columnIdx]].field;
+    for (int columnIdx = 0; columnIdx < length; columnIdx += 1) {
+      final field = refColumns[columnIndexes[columnIdx]].field;
 
-      if (refRows![rowIdx]!.cells[field]!.key == cellKey) {
+      if (refRows[rowIdx].cells[field]!.key == cellKey) {
         return columnIdx;
       }
     }
@@ -159,20 +170,20 @@ mixin CellState implements IPlutoGridState {
     return null;
   }
 
+  @override
   void clearCurrentCell({bool notify = true}) {
-    if (_currentCell == null) {
+    if (currentCell == null) {
       return;
     }
 
-    _currentCell = null;
+    _state._currentCell = null;
 
-    _currentCellPosition = null;
+    _state._currentCellPosition = null;
 
-    if (notify) {
-      notifyListeners();
-    }
+    notifyListeners(notify, clearCurrentCell.hashCode);
   }
 
+  @override
   void setCurrentCell(
     PlutoCell? cell,
     int? rowIdx, {
@@ -180,64 +191,75 @@ mixin CellState implements IPlutoGridState {
   }) {
     if (cell == null ||
         rowIdx == null ||
-        refRows == null ||
-        refRows!.isEmpty ||
+        refRows.isEmpty ||
         rowIdx < 0 ||
-        rowIdx > refRows!.length - 1) {
+        rowIdx > refRows.length - 1) {
       return;
     }
 
-    if (_currentCell != null && _currentCell!.key == cell.key) {
+    if (currentCell != null && currentCell!.key == cell.key) {
       return;
     }
 
-    _currentCell = cell;
+    _state._currentCell = cell;
 
-    _currentCellPosition = PlutoGridCellPosition(
+    _state._currentCellPosition = PlutoGridCellPosition(
       rowIdx: rowIdx,
       columnIdx: columnIdxByCellKeyAndRowIdx(cell.key, rowIdx),
     );
 
-    clearCurrentSelectingPosition(notify: false);
+    clearCurrentSelecting(notify: false);
 
-    clearCurrentSelectingRows(notify: false);
+    setEditing(autoEditing, notify: false);
 
-    setEditing(false, notify: false);
-
-    if (notify) {
-      notifyListeners();
-    }
+    notifyListeners(notify, setCurrentCell.hashCode);
   }
 
+  @override
   bool canMoveCell(
-      PlutoGridCellPosition? cellPosition, PlutoMoveDirection direction) {
+    PlutoGridCellPosition? cellPosition,
+    PlutoMoveDirection direction,
+  ) {
+    if (cellPosition == null || !cellPosition.hasPosition) return false;
+
     switch (direction) {
       case PlutoMoveDirection.left:
-        return cellPosition!.columnIdx! > 0;
+        return cellPosition.columnIdx! > 0;
       case PlutoMoveDirection.right:
-        return cellPosition!.columnIdx! < refColumns!.length - 1;
+        return cellPosition.columnIdx! < refColumns.length - 1;
       case PlutoMoveDirection.up:
-        return cellPosition!.rowIdx! > 0;
+        return cellPosition.rowIdx! > 0;
       case PlutoMoveDirection.down:
-        return cellPosition!.rowIdx! < refRows!.length - 1;
+        return cellPosition.rowIdx! < refRows.length - 1;
     }
   }
 
+  @override
   bool canNotMoveCell(
-      PlutoGridCellPosition? cellPosition, PlutoMoveDirection direction) {
+    PlutoGridCellPosition? cellPosition,
+    PlutoMoveDirection direction,
+  ) {
     return !canMoveCell(cellPosition, direction);
   }
 
+  @override
   bool canChangeCellValue({
-    PlutoColumn? column,
+    required PlutoCell cell,
     dynamic newValue,
     dynamic oldValue,
   }) {
-    if (column!.type!.readOnly! || column.enableEditingMode != true) {
+    if (!mode.isEditableMode) {
       return false;
     }
 
-    if (mode.isSelect) {
+    if (cell.column.checkReadOnly(
+      cell.row,
+      cell.row.cells[cell.column.field]!,
+    )) {
+      return false;
+    }
+
+    if (!isEditableCell(cell)) {
       return false;
     }
 
@@ -248,58 +270,70 @@ mixin CellState implements IPlutoGridState {
     return true;
   }
 
+  @override
   bool canNotChangeCellValue({
-    PlutoColumn? column,
+    required PlutoCell cell,
     dynamic newValue,
     dynamic oldValue,
   }) {
     return !canChangeCellValue(
-      column: column,
+      cell: cell,
       newValue: newValue,
       oldValue: oldValue,
     );
   }
 
+  @override
   dynamic filteredCellValue({
-    PlutoColumn? column,
+    required PlutoColumn column,
     dynamic newValue,
     dynamic oldValue,
   }) {
-    if (column!.type.isSelect &&
-        column.type.select!.items!.contains(newValue) != true) {
-      newValue = oldValue;
-    } else if (column.type.isDate) {
+    if (column.type.isSelect) {
+      return column.type.select.items.contains(newValue) == true
+          ? newValue
+          : oldValue;
+    }
+
+    if (column.type.isDate) {
       try {
-        final parseNewValue = intl.DateFormat(column.type.date!.format)
-            .parseStrict(newValue.toString());
+        final parseNewValue =
+            column.type.date.dateFormat.parseStrict(newValue.toString());
 
-        newValue =
-            intl.DateFormat(column.type.date!.format).format(parseNewValue);
+        return PlutoDateTimeHelper.isValidRange(
+          date: parseNewValue,
+          start: column.type.date.startDate,
+          end: column.type.date.endDate,
+        )
+            ? column.type.date.dateFormat.format(parseNewValue)
+            : oldValue;
       } catch (e) {
-        newValue = oldValue;
+        return oldValue;
       }
-    } else if (column.type.isTime) {
-      final time = RegExp(r'^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$');
+    }
 
-      if (!time.hasMatch(newValue.toString())) {
-        newValue = oldValue;
-      }
+    if (column.type.isTime) {
+      final time = RegExp(r'^([0-1]?\d|2[0-3]):[0-5]\d$');
+
+      return time.hasMatch(newValue.toString()) ? newValue : oldValue;
     }
 
     return newValue;
   }
 
+  @override
   bool isCurrentCell(PlutoCell? cell) {
-    return _currentCell != null && _currentCell!.key == cell!.key;
+    return currentCell != null && currentCell!.key == cell!.key;
   }
 
+  @override
   bool isInvalidCellPosition(PlutoGridCellPosition? cellPosition) {
     return cellPosition == null ||
         cellPosition.columnIdx == null ||
         cellPosition.rowIdx == null ||
         cellPosition.columnIdx! < 0 ||
         cellPosition.rowIdx! < 0 ||
-        cellPosition.columnIdx! > refColumns!.length - 1 ||
-        cellPosition.rowIdx! > refRows!.length - 1;
+        cellPosition.columnIdx! > refColumns.length - 1 ||
+        cellPosition.rowIdx! > refRows.length - 1;
   }
 }

@@ -1,17 +1,117 @@
-import 'dart:ui';
-
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pluto_grid/pluto_grid.dart';
 
+import '../../helper/row_helper.dart';
+
 void main() {
+  group('titleWithGroup', () {
+    test('group 이 null 인 경우 column.title 이 리턴 되어야 한다.', () {
+      final column = PlutoColumn(
+        title: 'column',
+        field: 'column',
+        type: PlutoColumnType.text(),
+      );
+
+      expect(column.group, null);
+      expect(column.titleWithGroup, 'column');
+    });
+
+    test('group 이 한개 있는 경우 컬럼 제목과 그룹 명이 리턴 되어야 한다.', () {
+      final column = PlutoColumn(
+        title: 'column',
+        field: 'column',
+        type: PlutoColumnType.text(),
+      );
+
+      column.group = PlutoColumnGroup(title: 'group', fields: ['column']);
+
+      expect(column.titleWithGroup, 'group column');
+    });
+
+    test('group 이 여러개 있는 경우 컬럼 제목과 그룹 명이 모두 리턴 되어야 한다.', () {
+      final column = PlutoColumn(
+        title: 'column',
+        field: 'column',
+        type: PlutoColumnType.text(),
+      );
+
+      final group = PlutoColumnGroup(
+        title: 'groupA2-1',
+        fields: ['column'],
+      );
+
+      PlutoColumnGroup(
+        title: 'groupA',
+        children: [
+          PlutoColumnGroup(
+            title: 'groupA1',
+            fields: ['DUMMY_COLUMN'],
+          ),
+          PlutoColumnGroup(
+            title: 'groupA2',
+            children: [group],
+          ),
+        ],
+      );
+
+      column.group = group;
+
+      expect(column.titleWithGroup, 'groupA groupA2 groupA2-1 column');
+    });
+
+    test('group 이 여러개 있는데 expandedColumn 인 경우 마지막 그룹명은 출력 되지 않아야 한다.', () {
+      final column = PlutoColumn(
+        title: 'column',
+        field: 'column',
+        type: PlutoColumnType.text(),
+      );
+
+      final group = PlutoColumnGroup(
+        title: 'groupA2-1',
+        fields: ['column'],
+        expandedColumn: true,
+      );
+
+      PlutoColumnGroup(
+        title: 'groupA',
+        children: [
+          PlutoColumnGroup(
+            title: 'groupA1',
+            fields: ['DUMMY_COLUMN'],
+          ),
+          PlutoColumnGroup(
+            title: 'groupA2',
+            children: [group],
+          ),
+        ],
+      );
+
+      column.group = group;
+
+      expect(column.titleWithGroup, 'groupA groupA2 column');
+    });
+  });
+
   group(
     'PlutoColumnTextAlign',
     () {
       test(
+        'isStart',
+        () {
+          // given
+          const PlutoColumnTextAlign textAlign = PlutoColumnTextAlign.start;
+          // when
+          // then
+          expect(textAlign.isStart, isTrue);
+        },
+      );
+
+      test(
         'isLeft',
         () {
           // given
-          final PlutoColumnTextAlign textAlign = PlutoColumnTextAlign.left;
+          const PlutoColumnTextAlign textAlign = PlutoColumnTextAlign.left;
           // when
           // then
           expect(textAlign.isLeft, isTrue);
@@ -19,10 +119,21 @@ void main() {
       );
 
       test(
+        'isCenter',
+        () {
+          // given
+          const PlutoColumnTextAlign textAlign = PlutoColumnTextAlign.center;
+          // when
+          // then
+          expect(textAlign.isCenter, isTrue);
+        },
+      );
+
+      test(
         'isRight',
         () {
           // given
-          final PlutoColumnTextAlign textAlign = PlutoColumnTextAlign.right;
+          const PlutoColumnTextAlign textAlign = PlutoColumnTextAlign.right;
           // when
           // then
           expect(textAlign.isRight, isTrue);
@@ -30,10 +141,32 @@ void main() {
       );
 
       test(
+        'isEnd',
+        () {
+          // given
+          const PlutoColumnTextAlign textAlign = PlutoColumnTextAlign.end;
+          // when
+          // then
+          expect(textAlign.isEnd, isTrue);
+        },
+      );
+
+      test(
+        'value is TextAlign.start',
+        () {
+          // given
+          const PlutoColumnTextAlign textAlign = PlutoColumnTextAlign.start;
+          // when
+          // then
+          expect(textAlign.value, TextAlign.start);
+        },
+      );
+
+      test(
         'value is TextAlign.left',
         () {
           // given
-          final PlutoColumnTextAlign textAlign = PlutoColumnTextAlign.left;
+          const PlutoColumnTextAlign textAlign = PlutoColumnTextAlign.left;
           // when
           // then
           expect(textAlign.value, TextAlign.left);
@@ -41,13 +174,90 @@ void main() {
       );
 
       test(
+        'value is TextAlign.center',
+        () {
+          // given
+          const PlutoColumnTextAlign textAlign = PlutoColumnTextAlign.center;
+          // when
+          // then
+          expect(textAlign.value, TextAlign.center);
+        },
+      );
+
+      test(
         'value is TextAlign.right',
         () {
           // given
-          final PlutoColumnTextAlign textAlign = PlutoColumnTextAlign.right;
+          const PlutoColumnTextAlign textAlign = PlutoColumnTextAlign.right;
           // when
           // then
           expect(textAlign.value, TextAlign.right);
+        },
+      );
+
+      test(
+        'value is TextAlign.end',
+        () {
+          // given
+          const PlutoColumnTextAlign textAlign = PlutoColumnTextAlign.end;
+          // when
+          // then
+          expect(textAlign.value, TextAlign.end);
+        },
+      );
+
+      test(
+        'alignmentValue is AlignmentDirectional.centerStart',
+        () {
+          // given
+          const PlutoColumnTextAlign textAlign = PlutoColumnTextAlign.start;
+          // when
+          // then
+          expect(textAlign.alignmentValue, AlignmentDirectional.centerStart);
+        },
+      );
+
+      test(
+        'alignmentValue is Alignment.centerLeft',
+        () {
+          // given
+          const PlutoColumnTextAlign textAlign = PlutoColumnTextAlign.left;
+          // when
+          // then
+          expect(textAlign.alignmentValue, Alignment.centerLeft);
+        },
+      );
+
+      test(
+        'alignmentValue is Alignment.center',
+        () {
+          // given
+          const PlutoColumnTextAlign textAlign = PlutoColumnTextAlign.center;
+          // when
+          // then
+          expect(textAlign.alignmentValue, Alignment.center);
+        },
+      );
+
+      test(
+        'alignmentValue is Alignment.centerRight',
+        () {
+          // given
+          const PlutoColumnTextAlign textAlign = PlutoColumnTextAlign.right;
+          // when
+          // then
+          expect(textAlign.alignmentValue, Alignment.centerRight);
+        },
+      );
+
+      test(
+        'alignmentValue is AlignmentDirectional.centerEnd',
+        () {
+          // given
+          const PlutoColumnTextAlign textAlign = PlutoColumnTextAlign.end;
+          // when
+          // then
+          expect(textAlign.alignmentValue, AlignmentDirectional.centerEnd);
         },
       );
     },
@@ -60,7 +270,7 @@ void main() {
         'isNone',
         () {
           // given
-          final PlutoColumnSort columnSort = PlutoColumnSort.none;
+          const PlutoColumnSort columnSort = PlutoColumnSort.none;
           // when
           // then
           expect(columnSort.isNone, isTrue);
@@ -71,7 +281,7 @@ void main() {
         'isAscending',
         () {
           // given
-          final PlutoColumnSort columnSort = PlutoColumnSort.ascending;
+          const PlutoColumnSort columnSort = PlutoColumnSort.ascending;
           // when
           // then
           expect(columnSort.isAscending, isTrue);
@@ -82,68 +292,10 @@ void main() {
         'isDescending',
         () {
           // given
-          final PlutoColumnSort columnSort = PlutoColumnSort.descending;
+          const PlutoColumnSort columnSort = PlutoColumnSort.descending;
           // when
           // then
           expect(columnSort.isDescending, isTrue);
-        },
-      );
-
-      group(
-        'toShortString',
-        () {
-          test(
-            'None',
-            () {
-              final PlutoColumnSort columnSort = PlutoColumnSort.none;
-              expect(columnSort.toShortString(), 'none');
-            },
-          );
-
-          test(
-            'Ascending',
-            () {
-              final PlutoColumnSort columnSort = PlutoColumnSort.ascending;
-              expect(columnSort.toShortString(), 'ascending');
-            },
-          );
-
-          test(
-            'Descending',
-            () {
-              final PlutoColumnSort columnSort = PlutoColumnSort.descending;
-              expect(columnSort.toShortString(), 'descending');
-            },
-          );
-        },
-      );
-
-      group(
-        'fromString',
-        () {
-          test(
-            'None',
-            () {
-              expect(PlutoColumnSort.none.fromString('none'),
-                  PlutoColumnSort.none);
-            },
-          );
-
-          test(
-            'Ascending',
-            () {
-              expect(PlutoColumnSort.none.fromString('ascending'),
-                  PlutoColumnSort.ascending);
-            },
-          );
-
-          test(
-            'Descending',
-            () {
-              expect(PlutoColumnSort.none.fromString('descending'),
-                  PlutoColumnSort.descending);
-            },
-          );
         },
       );
     },
@@ -306,6 +458,26 @@ void main() {
   );
 
   group('PlutoColumnTypeNumber', () {
+    group('locale', () {
+      test('numberFormat 에 기본 로케일이 설정 되어야 한다.', () {
+        final PlutoColumnTypeNumber numberColumn =
+            PlutoColumnType.number() as PlutoColumnTypeNumber;
+        expect(numberColumn.numberFormat.locale, 'en_US');
+      });
+
+      test('numberFormat 에 denmark 로케일이 설정 되어야 한다.', () {
+        final PlutoColumnTypeNumber numberColumn =
+            PlutoColumnType.number(locale: 'da_DK') as PlutoColumnTypeNumber;
+        expect(numberColumn.numberFormat.locale, 'da');
+      });
+
+      test('numberFormat 에 korea 로케일이 설정 되어야 한다.', () {
+        final PlutoColumnTypeNumber numberColumn =
+            PlutoColumnType.number(locale: 'ko_KR') as PlutoColumnTypeNumber;
+        expect(numberColumn.numberFormat.locale, 'ko');
+      });
+    });
+
     group('isValid', () {
       test(
         '문자인 경우 false',
@@ -774,5 +946,158 @@ void main() {
         expect(column.formattedValueForDisplay(12345), '\$ 12345');
       },
     );
+  });
+
+  group('checkReadOnly', () {
+    makeColumn({
+      required bool readOnly,
+      PlutoColumnCheckReadOnly? checkReadOnly,
+    }) {
+      return PlutoColumn(
+        title: 'title',
+        field: 'field',
+        type: PlutoColumnType.text(),
+        readOnly: readOnly,
+        checkReadOnly: checkReadOnly,
+      );
+    }
+
+    makeRow(PlutoColumn column) {
+      return RowHelper.count(1, [column]).first;
+    }
+
+    test('readOnly = false, checkReadOnly = 미설정 이면 false 를 반환해야 한다.', () {
+      final column = makeColumn(readOnly: false);
+
+      expect(column.readOnly, false);
+    });
+
+    test('readOnly = true, checkReadOnly = 미설정 이면 true 를 반환해야 한다.', () {
+      final column = makeColumn(readOnly: true);
+
+      expect(column.readOnly, true);
+    });
+
+    test('readOnly = false, checkReadOnly = true 이면 true 를 반환해야 한다.', () {
+      final column =
+          makeColumn(readOnly: false, checkReadOnly: (_, __) => true);
+
+      final row = makeRow(column);
+
+      final cell = row.cells['field'];
+
+      expect(column.checkReadOnly(row, cell!), true);
+    });
+
+    test('readOnly = true, checkReadOnly = false 이면 false 를 반환해야 한다.', () {
+      final column =
+          makeColumn(readOnly: true, checkReadOnly: (_, __) => false);
+
+      final row = makeRow(column);
+
+      final cell = row.cells['field'];
+
+      expect(column.checkReadOnly(row, cell!), false);
+    });
+  });
+
+  group('formattedValueForDisplayInEditing', () {
+    group('PlutoColumnTypeWithNumberFormat 이 아닌 컬럼.', () {
+      test('formatter 가 있고 readOnly 컬럼인 경우 formatter 가 적용 되어야 한다.', () {
+        final column = PlutoColumn(
+          title: 'column',
+          field: 'column',
+          applyFormatterInEditing: true,
+          readOnly: true,
+          type: PlutoColumnType.text(),
+          formatter: (s) => '$s changed',
+        );
+
+        expect(
+          column.formattedValueForDisplayInEditing('original'),
+          'original changed',
+        );
+      });
+
+      test(
+        'readOnly 가 false 여도 formatter 가 있고 select 타입 컬럼인 경우 '
+        'formatter 가 적용 되어야 한다.',
+        () {
+          final column = PlutoColumn(
+            title: 'column',
+            field: 'column',
+            applyFormatterInEditing: true,
+            readOnly: false,
+            type: PlutoColumnType.select(['one', 'two', 'three']),
+            formatter: (s) => '$s changed',
+          );
+
+          expect(
+            column.formattedValueForDisplayInEditing('original'),
+            'original changed',
+          );
+        },
+      );
+
+      test(
+        'readOnly 가 false 여도 formatter 가 있고 time 타입 컬럼인 경우 '
+        'formatter 가 적용 되어야 한다.',
+        () {
+          final column = PlutoColumn(
+            title: 'column',
+            field: 'column',
+            applyFormatterInEditing: true,
+            readOnly: false,
+            type: PlutoColumnType.time(),
+            formatter: (s) => '$s changed',
+          );
+
+          expect(
+            column.formattedValueForDisplayInEditing('original'),
+            'original changed',
+          );
+        },
+      );
+
+      test(
+        'readOnly 가 false 여도 formatter 가 있고 date 타입 컬럼인 경우 '
+        'formatter 가 적용 되어야 한다.',
+        () {
+          final column = PlutoColumn(
+            title: 'column',
+            field: 'column',
+            applyFormatterInEditing: true,
+            readOnly: false,
+            type: PlutoColumnType.date(),
+            formatter: (s) => '$s changed',
+          );
+
+          expect(
+            column.formattedValueForDisplayInEditing('original'),
+            'original changed',
+          );
+        },
+      );
+
+      test(
+        'formatter 가 있고 readOnly 컬럼인 경우 applyFormatterInEditing 가 false 면 '
+        'formatter 가 적용 되지 않아야 한다.',
+        () {
+          final column = PlutoColumn(
+            title: 'column',
+            field: 'column',
+            applyFormatterInEditing: false,
+            readOnly: true,
+            type: PlutoColumnType.text(),
+            formatter: (s) => '$s changed',
+          );
+
+          expect(
+            column.formattedValueForDisplayInEditing('original'),
+            'original',
+          );
+        },
+      );
+    });
   });
 }

@@ -1,10 +1,11 @@
+import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:pluto_grid/pluto_grid.dart';
 
 abstract class IDraggingRowState {
   bool get isDraggingRow;
 
-  List<PlutoRow?>? get dragRows;
+  List<PlutoRow> get dragRows;
 
   int? get dragTargetRowIdx;
 
@@ -34,95 +35,102 @@ abstract class IDraggingRowState {
   bool isRowBeingDragged(Key rowKey);
 }
 
-mixin DraggingRowState implements IPlutoGridState {
-  bool get isDraggingRow => _isDraggingRow;
-
+class _State {
   bool _isDraggingRow = false;
 
-  List<PlutoRow?>? get dragRows => _dragRows;
-
-  List<PlutoRow?>? _dragRows;
-
-  int? get dragTargetRowIdx => _dragTargetRowIdx;
+  List<PlutoRow> _dragRows = [];
 
   int? _dragTargetRowIdx;
+}
 
-  bool get canRowDrag => !hasSortedColumn && !hasFilter;
+mixin DraggingRowState implements IPlutoGridState {
+  final _State _state = _State();
 
+  @override
+  bool get isDraggingRow => _state._isDraggingRow;
+
+  @override
+  List<PlutoRow> get dragRows => _state._dragRows;
+
+  @override
+  int? get dragTargetRowIdx => _state._dragTargetRowIdx;
+
+  @override
+  bool get canRowDrag => !hasFilter && !hasSortedColumn && !enabledRowGroups;
+
+  @override
   void setIsDraggingRow(
     bool flag, {
     bool notify = true,
   }) {
-    if (_isDraggingRow == flag) {
+    if (isDraggingRow == flag) {
       return;
     }
 
-    _isDraggingRow = flag;
+    _state._isDraggingRow = flag;
 
     _clearDraggingState();
 
-    if (notify) {
-      notifyListeners();
-    }
+    notifyListeners(notify, setIsDraggingRow.hashCode);
   }
 
+  @override
   void setDragRows(
-    List<PlutoRow?>? rows, {
+    List<PlutoRow> rows, {
     bool notify = true,
   }) {
-    _dragRows = rows;
+    _state._dragRows = rows;
 
-    if (notify) {
-      notifyListeners();
-    }
+    notifyListeners(notify, setDragRows.hashCode);
   }
 
+  @override
   void setDragTargetRowIdx(
     int? rowIdx, {
     bool notify = true,
   }) {
-    if (_dragTargetRowIdx == rowIdx) {
+    if (dragTargetRowIdx == rowIdx) {
       return;
     }
 
-    _dragTargetRowIdx = rowIdx;
+    _state._dragTargetRowIdx = rowIdx;
 
-    if (notify) {
-      notifyListeners();
-    }
+    notifyListeners(notify, setDragTargetRowIdx.hashCode);
   }
 
+  @override
   bool isRowIdxDragTarget(int? rowIdx) {
     return rowIdx != null &&
-        _dragTargetRowIdx != null &&
-        _dragTargetRowIdx! <= rowIdx &&
-        rowIdx < _dragTargetRowIdx! + _dragRows!.length;
+        dragTargetRowIdx != null &&
+        dragTargetRowIdx! <= rowIdx &&
+        rowIdx < dragTargetRowIdx! + dragRows.length;
   }
 
+  @override
   bool isRowIdxTopDragTarget(int? rowIdx) {
     return rowIdx != null &&
-        _dragTargetRowIdx != null &&
-        _dragTargetRowIdx == rowIdx;
+        dragTargetRowIdx != null &&
+        dragTargetRowIdx == rowIdx &&
+        rowIdx + dragRows.length <= refRows.length;
   }
 
+  @override
   bool isRowIdxBottomDragTarget(int? rowIdx) {
     return rowIdx != null &&
-        _dragTargetRowIdx != null &&
-        rowIdx == _dragTargetRowIdx! + _dragRows!.length - 1;
+        dragTargetRowIdx != null &&
+        rowIdx == dragTargetRowIdx! + dragRows.length - 1;
   }
 
+  @override
   bool isRowBeingDragged(Key? rowKey) {
     return rowKey != null &&
-        _isDraggingRow == true &&
-        dragRows != null &&
-        dragRows!.firstWhere((element) => element!.key == rowKey,
-                orElse: () => null) !=
-            null;
+        isDraggingRow == true &&
+        dragRows.firstWhereOrNull((element) => element.key == rowKey) != null;
   }
 
   void _clearDraggingState() {
-    _dragRows = null;
+    _state._dragRows = [];
 
-    _dragTargetRowIdx = null;
+    _state._dragTargetRowIdx = null;
   }
 }

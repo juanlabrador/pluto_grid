@@ -1,33 +1,32 @@
 import 'package:flutter/material.dart';
 import 'package:pluto_grid/pluto_grid.dart';
 
-import 'mixin_text_cell.dart';
+import 'text_cell.dart';
 
-class PlutoTextCell extends StatefulWidget implements AbstractMixinTextCell {
-  final PlutoGridStateManager? stateManager;
-  final PlutoCell? cell;
-  final PlutoColumn? column;
+class PlutoTextCell extends StatefulWidget implements TextCell {
+  @override
+  final PlutoGridStateManager stateManager;
 
-  PlutoTextCell({
-    this.stateManager,
-    this.cell,
-    this.column,
+  @override
+  final PlutoCell cell;
+
+  @override
+  final PlutoColumn column;
+
+  @override
+  final PlutoRow row;
+
+  const PlutoTextCell({
+    required this.stateManager,
+    required this.cell,
+    required this.column,
+    required this.row,
+    super.key,
   });
 
   @override
-  _PlutoTextCellState createState() => _PlutoTextCellState();
+  PlutoTextCellState createState() => PlutoTextCellState();
 }
 
-class _PlutoTextCellState extends State<PlutoTextCell>
-    with MixinTextCell<PlutoTextCell> {
-  @override
-  Widget build(BuildContext context) {
-    if (widget.stateManager!.keepFocus) {
-      cellFocus!.requestFocus();
-    }
-
-    return buildTextField(
-      keyboardType: TextInputType.text,
-    );
-  }
-}
+class PlutoTextCellState extends State<PlutoTextCell>
+    with TextCellState<PlutoTextCell> {}

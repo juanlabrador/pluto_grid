@@ -4,10 +4,10 @@ import 'package:pluto_grid/pluto_grid.dart';
 import 'package:rxdart/rxdart.dart';
 
 class PlutoGridEventManager {
-  PlutoGridStateManager? stateManager;
+  final PlutoGridStateManager stateManager;
 
   PlutoGridEventManager({
-    this.stateManager,
+    required this.stateManager,
   });
 
   final PublishSubject<PlutoGridEvent> _subject =
@@ -15,21 +15,38 @@ class PlutoGridEventManager {
 
   PublishSubject<PlutoGridEvent> get subject => _subject;
 
+  late final StreamSubscription _subscription;
+
+  StreamSubscription get subscription => _subscription;
+
   void dispose() {
+    _subscription.cancel();
+
     _subject.close();
   }
 
   void init() {
     final normalStream = _subject.stream.where((event) => event.type.isNormal);
 
-    final throttleStream =
-        _subject.stream.where((event) => event.type.isThrottle).transform(
-              ThrottleStreamTransformer(
-                (_) => TimerStream<PlutoGridEvent>(_, _.duration as Duration),
-                trailing: true,
-                leading: false,
-              ),
-            );
+    final throttleLeadingStream = _subject.stream
+        .where((event) => event.type.isThrottleLeading)
+        .transform(
+          ThrottleStreamTransformer(
+            (_) => TimerStream<PlutoGridEvent>(_, _.duration as Duration),
+            trailing: false,
+            leading: true,
+          ),
+        );
+
+    final throttleTrailingStream = _subject.stream
+        .where((event) => event.type.isThrottleTrailing)
+        .transform(
+          ThrottleStreamTransformer(
+            (_) => TimerStream<PlutoGridEvent>(_, _.duration as Duration),
+            trailing: true,
+            leading: false,
+          ),
+        );
 
     final debounceStream =
         _subject.stream.where((event) => event.type.isDebounce).transform(
@@ -38,8 +55,12 @@ class PlutoGridEventManager {
               ),
             );
 
-    MergeStream([normalStream, throttleStream, debounceStream])
-        .listen(_handler);
+    _subscription = MergeStream([
+      normalStream,
+      throttleLeadingStream,
+      throttleTrailingStream,
+      debounceStream,
+    ]).listen(_handler);
   }
 
   void addEvent(PlutoGridEvent event) {
@@ -47,7 +68,7 @@ class PlutoGridEventManager {
   }
 
   StreamSubscription<PlutoGridEvent> listener(
-    void onData(PlutoGridEvent event),
+    void Function(PlutoGridEvent event) onData,
   ) {
     return _subject.stream.listen(onData);
   }

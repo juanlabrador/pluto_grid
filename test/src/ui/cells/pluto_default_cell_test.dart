@@ -1,35 +1,60 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 import 'package:pluto_grid/pluto_grid.dart';
+import 'package:pluto_grid/src/ui/ui.dart';
+import 'package:rxdart/rxdart.dart';
 
 import '../../../helper/pluto_widget_test_helper.dart';
 import '../../../helper/row_helper.dart';
+import '../../../helper/test_helper_util.dart';
 import '../../../matcher/pluto_object_matcher.dart';
-import 'pluto_default_cell_test.mocks.dart';
+import '../../../mock/shared_mocks.mocks.dart';
 
-@GenerateMocks([], customMocks: [
-  MockSpec<PlutoGridStateManager>(returnNullOnMissingStub: true),
-  MockSpec<PlutoGridEventManager>(returnNullOnMissingStub: true),
-])
 void main() {
   late MockPlutoGridStateManager stateManager;
+  late MockPlutoGridScrollController scroll;
+  late MockLinkedScrollControllerGroup horizontalScroll;
+  late MockScrollController horizontalScrollController;
+  late MockScrollController verticalScrollController;
   MockPlutoGridEventManager? eventManager;
+  PublishSubject<PlutoNotifierEvent> streamNotifier;
 
   setUp(() {
     stateManager = MockPlutoGridStateManager();
+    scroll = MockPlutoGridScrollController();
+    horizontalScroll = MockLinkedScrollControllerGroup();
+    horizontalScrollController = MockScrollController();
+    verticalScrollController = MockScrollController();
     eventManager = MockPlutoGridEventManager();
+    streamNotifier = PublishSubject<PlutoNotifierEvent>();
+    when(stateManager.isRTL).thenReturn(false);
+    when(stateManager.textDirection).thenReturn(TextDirection.ltr);
     when(stateManager.eventManager).thenReturn(eventManager);
-    when(stateManager.configuration).thenReturn(PlutoGridConfiguration());
+    when(stateManager.streamNotifier).thenAnswer((_) => streamNotifier);
+    when(stateManager.configuration).thenReturn(const PlutoGridConfiguration());
+    when(stateManager.keyPressed).thenReturn(PlutoGridKeyPressed());
     when(stateManager.rowTotalHeight).thenReturn(
-      RowHelper.resolveRowTotalHeight(stateManager.configuration!.rowHeight),
+      RowHelper.resolveRowTotalHeight(
+        stateManager.configuration.style.rowHeight,
+      ),
     );
     when(stateManager.localeText).thenReturn(const PlutoGridLocaleText());
     when(stateManager.keepFocus).thenReturn(true);
     when(stateManager.hasFocus).thenReturn(true);
     when(stateManager.canRowDrag).thenReturn(true);
     when(stateManager.rowHeight).thenReturn(0);
+    when(stateManager.currentSelectingRows).thenReturn([]);
+    when(stateManager.scroll).thenReturn(scroll);
+    when(scroll.maxScrollHorizontal).thenReturn(0);
+    when(scroll.horizontal).thenReturn(horizontalScroll);
+    when(scroll.bodyRowsHorizontal).thenReturn(horizontalScrollController);
+    when(scroll.bodyRowsVertical).thenReturn(verticalScrollController);
+    when(horizontalScrollController.offset).thenReturn(0);
+    when(verticalScrollController.offset).thenReturn(0);
+    when(stateManager.isCurrentCell(any)).thenReturn(false);
+    when(stateManager.enabledRowGroups).thenReturn(false);
+    when(stateManager.rowGroupDelegate).thenReturn(null);
   });
 
   group('기본 셀 테스트', () {
@@ -41,14 +66,22 @@ void main() {
 
     final PlutoCell cell = PlutoCell(value: 'default cell value');
 
+    final PlutoRow row = PlutoRow(
+      cells: {
+        'column_field_name': cell,
+      },
+    );
+
     final cellWidget = PlutoWidgetTestHelper('cell widget', (tester) async {
       await tester.pumpWidget(
         MaterialApp(
           home: Material(
             child: PlutoDefaultCell(
-              stateManager: stateManager,
               cell: cell,
               column: column,
+              row: row,
+              rowIdx: 0,
+              stateManager: stateManager,
             ),
           ),
         ),
@@ -79,8 +112,9 @@ void main() {
   });
 
   group('renderer', () {
-    final buildCellWidgetWithRenderer =
-        (Widget Function(PlutoColumnRendererContext) renderer) {
+    buildCellWidgetWithRenderer(
+      Widget Function(PlutoColumnRendererContext) renderer,
+    ) {
       final PlutoColumn column = PlutoColumn(
         title: 'column title',
         field: 'column_field_name',
@@ -90,20 +124,28 @@ void main() {
 
       final PlutoCell cell = PlutoCell(value: 'default cell value');
 
+      final PlutoRow row = PlutoRow(
+        cells: {
+          'column_field_name': cell,
+        },
+      );
+
       return PlutoWidgetTestHelper('cell widget', (tester) async {
         await tester.pumpWidget(
           MaterialApp(
             home: Material(
               child: PlutoDefaultCell(
-                stateManager: stateManager,
                 cell: cell,
                 column: column,
+                row: row,
+                rowIdx: 0,
+                stateManager: stateManager,
               ),
             ),
           ),
         );
       });
-    };
+    }
 
     final renderText = buildCellWidgetWithRenderer(
         (PlutoColumnRendererContext rendererContext) {
@@ -119,7 +161,7 @@ void main() {
 
     final renderTextWithCellValue = buildCellWidgetWithRenderer(
         (PlutoColumnRendererContext rendererContext) {
-      return Text(rendererContext.cell!.value.toString());
+      return Text(rendererContext.cell.value.toString());
     });
 
     renderTextWithCellValue.test(
@@ -140,7 +182,13 @@ void main() {
 
     final PlutoCell cell = PlutoCell(value: 'default cell value');
 
-    final PlutoWidgetTestHelper Function({bool canRowDrag}) cellWidget = ({
+    final PlutoRow row = PlutoRow(
+      cells: {
+        'column_field_name': cell,
+      },
+    );
+
+    cellWidget({
       bool? canRowDrag,
     }) {
       return PlutoWidgetTestHelper('cell widget', (tester) async {
@@ -150,35 +198,41 @@ void main() {
           MaterialApp(
             home: Material(
               child: PlutoDefaultCell(
-                stateManager: stateManager,
                 cell: cell,
                 column: column,
+                row: row,
+                rowIdx: 0,
+                stateManager: stateManager,
               ),
             ),
           ),
         );
       });
-    };
+    }
 
     cellWidget(canRowDrag: true).test(
       'canRowDrag 가 true 인 경우 Draggable 위젯이 렌더링 되어야 한다.',
       (tester) async {
-        expect(find.byType(Draggable), findsOneWidget);
+        expect(
+          find.byType(TestHelperUtil.typeOf<Draggable<PlutoRow>>()),
+          findsOneWidget,
+        );
       },
     );
 
     cellWidget(canRowDrag: false).test(
       'canRowDrag 가 false 인 경우 Draggable 위젯이 렌더링 되지 않아야 한다.',
       (tester) async {
-        expect(find.byType(Draggable), findsNothing);
+        expect(
+          find.byType(TestHelperUtil.typeOf<Draggable<PlutoRow>>()),
+          findsNothing,
+        );
       },
     );
 
     cellWidget(canRowDrag: true).test(
-      'Draggable 아이콘을 드래그 하지 않으면 PlutoDragRowsEvent 가 호출 되지 않아야 한다.',
+      'Draggable 아이콘을 드래그 하지 않으면 PlutoGridScrollUpdateEvent 가 호출 되지 않아야 한다.',
       (tester) async {
-        final row = PlutoRow(cells: {});
-
         when(stateManager.getRowByIdx(any)).thenReturn(row);
         when(stateManager.isSelectedRow(any)).thenReturn(false);
 
@@ -189,81 +243,41 @@ void main() {
         // It only needs to be called Update, so it is ignored.
 
         verifyNever(eventManager!.addEvent(
-          argThat(PlutoObjectMatcher<PlutoGridDragRowsEvent>(rule: (object) {
-            return object.dragType.isUpdate;
+          argThat(
+              PlutoObjectMatcher<PlutoGridScrollUpdateEvent>(rule: (object) {
+            return true;
           })),
         ));
       },
     );
 
     cellWidget(canRowDrag: true).test(
-      'Draggable 아이콘을 드래그 하면 PlutoDragRowsEvent 가 호출 되어야 한다.',
+      'Draggable 아이콘을 드래그 하면 PlutoGridScrollUpdateEvent 가 호출 되어야 한다.',
       (tester) async {
-        final offset = const Offset(0.0, 100);
-
-        final row = PlutoRow(cells: {});
+        const offset = Offset(0.0, 100);
 
         when(stateManager.getRowByIdx(any)).thenReturn(row);
         when(stateManager.isSelectedRow(any)).thenReturn(false);
+        when(stateManager.isSelecting).thenReturn(false);
 
         await tester.drag(find.byType(Icon), offset);
 
-        verify(eventManager!.addEvent(
-          argThat(PlutoObjectMatcher<PlutoGridDragRowsEvent>(rule: (object) {
-            return object.dragType.isStart &&
-                object.rows!.length == 1 &&
-                object.rows!.first!.key == row.key;
-          })),
+        verify(stateManager.setIsDraggingRow(true, notify: false)).called(1);
+
+        verify(stateManager.setDragRows(
+          [row],
         )).called(1);
 
         verify(eventManager!.addEvent(
-          argThat(PlutoObjectMatcher<PlutoGridDragRowsEvent>(rule: (object) {
-            return object.dragType.isUpdate &&
-                object.offset!.dy > 100 &&
-                object.rows!.length == 1 &&
-                object.rows!.first!.key == row.key;
+          argThat(
+              PlutoObjectMatcher<PlutoGridScrollUpdateEvent>(rule: (object) {
+            return true;
           })),
         )).called(greaterThan(1));
 
-        verify(eventManager!.addEvent(
-          argThat(PlutoObjectMatcher<PlutoGridDragRowsEvent>(rule: (object) {
-            return object.offset!.dy > 100 &&
-                object.dragType.isEnd &&
-                object.rows!.length == 1 &&
-                object.rows!.first!.key == row.key;
-          })),
-        )).called(1);
-      },
-    );
+        verify(stateManager.getRowIdxByOffset(any)).called(greaterThan(1));
 
-    cellWidget(canRowDrag: true).test(
-      'Draggable 아이콘을 드래그 하면 isCurrentRowSelected 이 true 인 경우'
-      'currentSelectingRows 로 PlutoDragRowsEvent 가 호출 되어야 한다.',
-      (tester) async {
-        final offset = const Offset(0.0, 100);
-
-        final rows = [
-          PlutoRow(cells: {}),
-          PlutoRow(cells: {}),
-          PlutoRow(cells: {}),
-        ];
-
-        when(stateManager.getRowByIdx(any)).thenReturn(rows.first);
-        when(stateManager.isSelectedRow(any)).thenReturn(true);
-        when(stateManager.currentSelectingRows).thenReturn(rows);
-
-        await tester.drag(find.byType(Icon), offset);
-
-        verify(eventManager!.addEvent(
-          argThat(PlutoObjectMatcher<PlutoGridDragRowsEvent>(rule: (object) {
-            return object.dragType.isUpdate &&
-                object.offset!.dy > 100 &&
-                object.rows!.length == 3 &&
-                object.rows![0]!.key == rows[0].key &&
-                object.rows![1]!.key == rows[1].key &&
-                object.rows![1]!.key == rows[1].key;
-          })),
-        )).called(greaterThan(1));
+        verify(stateManager.setDragTargetRowIdx(any)).called(greaterThan(1));
       },
     );
   });
@@ -271,7 +285,7 @@ void main() {
   group('enableRowChecked', () {
     PlutoRow? row;
 
-    final buildCellWidget = (bool checked) {
+    buildCellWidget(bool checked) {
       return PlutoWidgetTestHelper('cell widget', (tester) async {
         final PlutoColumn column = PlutoColumn(
           title: 'column title',
@@ -293,15 +307,17 @@ void main() {
           MaterialApp(
             home: Material(
               child: PlutoDefaultCell(
-                stateManager: stateManager,
                 cell: cell,
                 column: column,
+                row: row!,
+                rowIdx: 0,
+                stateManager: stateManager,
               ),
             ),
           ),
         );
       });
-    };
+    }
 
     final checkedCellWidget = buildCellWidget(true);
 
